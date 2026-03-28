@@ -116,7 +116,7 @@ const GlassesModels = {
             transparent: true,
             opacity: 0.3,
         });
-        lensMat.userData = { baseOpacity: 0.3 };
+        lensMat.userData = { baseOpacity: 0.3, isLens: true };
 
         // Scale factor for face-relative sizing
         const S = 0.065;

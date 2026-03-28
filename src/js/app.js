@@ -170,11 +170,35 @@
             }
         });
 
+        // Lens picker toggle
+        const btnLens = document.getElementById('btn-lens');
+        const lensPicker = document.getElementById('lens-picker');
+        btnLens.addEventListener('click', () => {
+            lensPicker.classList.toggle('hidden');
+            btnLens.classList.toggle('active');
+            // Close color picker if open
+            colorPicker.classList.add('hidden');
+            document.getElementById('btn-color').classList.remove('active');
+        });
+
+        // Lens options
+        document.querySelectorAll('.lens-option').forEach(opt => {
+            opt.addEventListener('click', () => {
+                const lensId = opt.dataset.lens;
+                arRenderer.setLensTint(lensId);
+                document.querySelectorAll('.lens-option').forEach(o => o.classList.remove('active'));
+                opt.classList.add('active');
+            });
+        });
+
         // Color picker toggle
         const btnColor = document.getElementById('btn-color');
         btnColor.addEventListener('click', () => {
             colorPicker.classList.toggle('hidden');
             btnColor.classList.toggle('active');
+            // Close lens picker if open
+            lensPicker.classList.add('hidden');
+            btnLens.classList.remove('active');
         });
 
         // Color swatches
@@ -189,11 +213,15 @@
             });
         });
 
-        // Close color picker on outside click
+        // Close pickers on outside click
         document.addEventListener('click', (e) => {
             if (!colorPicker.contains(e.target) && !document.getElementById('btn-color').contains(e.target)) {
                 colorPicker.classList.add('hidden');
                 document.getElementById('btn-color').classList.remove('active');
+            }
+            if (!lensPicker.contains(e.target) && !btnLens.contains(e.target)) {
+                lensPicker.classList.add('hidden');
+                btnLens.classList.remove('active');
             }
         });
 

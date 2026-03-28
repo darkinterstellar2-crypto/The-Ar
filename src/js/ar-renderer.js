@@ -102,12 +102,40 @@ class ARRenderer {
         if (!this.glassesGroup) return;
         this.currentColor = color;
 
-        // Update all frame materials
         this.glassesGroup.traverse((child) => {
-            if (child.isMesh && child.material && !child.material.transparent) {
+            if (child.isMesh && child.material && !child.material.userData?.isLens) {
                 child.material.color.set(color);
             }
         });
+    }
+
+    setLensTint(tintId) {
+        if (!this.glassesGroup) return;
+
+        const tints = {
+            'clear':       { color: 0x111111, opacity: 0.08, metalness: 0.0 },
+            'sun-grey':    { color: 0x1a1a1a, opacity: 0.55, metalness: 0.05 },
+            'sun-brown':   { color: 0x4a2810, opacity: 0.50, metalness: 0.05 },
+            'sun-green':   { color: 0x1a3a1a, opacity: 0.45, metalness: 0.05 },
+            'blue-light':  { color: 0xfffacc, opacity: 0.12, metalness: 0.0 },
+            'mirror-blue': { color: 0x1e90ff, opacity: 0.65, metalness: 0.7 },
+            'gradient':    { color: 0x0a0a0a, opacity: 0.50, metalness: 0.05 },
+            'rose':        { color: 0xc83250, opacity: 0.30, metalness: 0.1 },
+        };
+
+        const tint = tints[tintId] || tints['clear'];
+
+        this.glassesGroup.traverse((child) => {
+            if (child.isMesh && child.material?.userData?.isLens) {
+                child.material.color.set(tint.color);
+                child.material.opacity = tint.opacity;
+                child.material.metalness = tint.metalness;
+                child.material.userData.baseOpacity = tint.opacity;
+                child.material.needsUpdate = true;
+            }
+        });
+
+        this._render();
     }
 
     update(faceData) {

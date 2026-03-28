@@ -67,7 +67,14 @@
                     </svg>
                     <span>PD</span>
                 </button>
-                <button id="btn-color" class="control-btn" title="Change Color">
+                <button id="btn-lens" class="control-btn" title="Lens Tint">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="8"/>
+                        <path d="M12 4v16M4 12h16"/>
+                    </svg>
+                    <span>Lens</span>
+                </button>
+                <button id="btn-color" class="control-btn" title="Frame Color">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"/>
                         <path d="M12 2a10 10 0 010 20"/>
@@ -92,6 +99,44 @@
                 <button class="color-swatch" data-color="#228B22" style="background:#228B22" title="Forest Green"></button>
                 <button class="color-swatch" data-color="#FF4500" style="background:#FF4500" title="Orange Red"></button>
                 <button class="color-swatch" data-color="#800080" style="background:#800080" title="Purple"></button>
+            </div>
+        </div>
+
+        <!-- Lens Picker Modal -->
+        <div id="lens-picker" class="hidden">
+            <div class="lens-grid">
+                <button class="lens-option active" data-lens="clear" title="Clear">
+                    <div class="lens-preview" style="background: transparent; border: 2px solid rgba(255,255,255,0.3);"></div>
+                    <span>Clear</span>
+                </button>
+                <button class="lens-option" data-lens="sun-grey" title="Grey Tint">
+                    <div class="lens-preview" style="background: rgba(30,30,30,0.6);"></div>
+                    <span>Grey</span>
+                </button>
+                <button class="lens-option" data-lens="sun-brown" title="Brown Tint">
+                    <div class="lens-preview" style="background: rgba(80,40,10,0.5);"></div>
+                    <span>Brown</span>
+                </button>
+                <button class="lens-option" data-lens="sun-green" title="Green Tint">
+                    <div class="lens-preview" style="background: rgba(20,60,20,0.5);"></div>
+                    <span>Green</span>
+                </button>
+                <button class="lens-option" data-lens="blue-light" title="Blue Light">
+                    <div class="lens-preview" style="background: rgba(255,250,200,0.15);"></div>
+                    <span>Blue Light</span>
+                </button>
+                <button class="lens-option" data-lens="mirror-blue" title="Mirror Blue">
+                    <div class="lens-preview" style="background: linear-gradient(135deg, #1e90ff, #00bfff);"></div>
+                    <span>Mirror</span>
+                </button>
+                <button class="lens-option" data-lens="gradient" title="Gradient">
+                    <div class="lens-preview" style="background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);"></div>
+                    <span>Gradient</span>
+                </button>
+                <button class="lens-option" data-lens="rose" title="Rose">
+                    <div class="lens-preview" style="background: rgba(200,50,80,0.35);"></div>
+                    <span>Rosé</span>
+                </button>
             </div>
         </div>
 
