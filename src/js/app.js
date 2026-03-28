@@ -20,6 +20,8 @@
     const loadingScreen = document.getElementById('loading-screen');
     const loadingText = document.getElementById('loading-text');
     const arCanvas = document.getElementById('ar-canvas');
+    const overlayCanvas = document.getElementById('overlay-canvas');
+    const overlayCtx = overlayCanvas.getContext('2d');
     const webcam = document.getElementById('webcam');
     const frameList = document.getElementById('frame-list');
     const fpsCounter = document.getElementById('fps-counter');
@@ -110,6 +112,16 @@
             const result = pdMeasurer.measure(faceData);
             if (result) {
                 pdValue.textContent = `PD: ${result.pdMm}mm (${result.confidence}%)`;
+            }
+            // Draw PD overlay
+            overlayCanvas.width = overlayCanvas.clientWidth;
+            overlayCanvas.height = overlayCanvas.clientHeight;
+            overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+            pdMeasurer.drawOverlay(overlayCtx, faceData, overlayCanvas.width, overlayCanvas.height);
+        } else {
+            // Clear overlay when PD not active
+            if (overlayCanvas.width > 0) {
+                overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
             }
         }
 
