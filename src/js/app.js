@@ -1,6 +1,11 @@
 /**
  * app.js
- * Main application — wires FaceTracker + ARRenderer + PDMeasurer + UI
+ * Main application with calibration-first flow
+ * 
+ * Flow:
+ * 1. Loading → camera init
+ * 2. Calibration → face guide circle → capture selfie → analyze
+ * 3. AR Session → live glasses try-on with calibrated data
  */
 
 (function () {
@@ -8,17 +13,23 @@
 
     // === Instances ===
     const faceTracker = new FaceTracker();
+    const calibration = new Calibration();
     const pdMeasurer = new PDMeasurer();
     const faceShapeDetector = new FaceShapeDetector();
     let arRenderer = null;
-    let faceShapeActive = false;
     let currentModelId = 'aviator';
+    let faceShapeActive = false;
+
+    // State
+    let appState = 'loading'; // loading → calibrating → ar
     let fpsFrames = 0;
     let fpsLastTime = performance.now();
+    let lastFaceData = null;
 
     // === DOM refs ===
     const loadingScreen = document.getElementById('loading-screen');
     const loadingText = document.getElementById('loading-text');
+    const calibScreen = document.getElementById('calibration-screen');
     const arCanvas = document.getElementById('ar-canvas');
     const overlayCanvas = document.getElementById('overlay-canvas');
     const overlayCtx = overlayCanvas.getContext('2d');
@@ -30,127 +41,154 @@
     const colorPicker = document.getElementById('color-picker');
     const screenshotPreview = document.getElementById('screenshot-preview');
     const screenshotImg = document.getElementById('screenshot-img');
+    const noFaceHint = document.getElementById('no-face-hint');
 
     // === Init ===
     async function init() {
         loadingText.textContent = 'Loading AR engine...';
 
-        // Init renderer
         arRenderer = new ARRenderer(arCanvas);
-
-        // Build frame selector
         buildFrameSelector();
-
-        // Load default glasses
         arRenderer.setGlasses(currentModelId);
 
         loadingText.textContent = 'Starting camera...';
 
-        // Init face tracker
         try {
             await faceTracker.init(webcam, onFaceResults);
         } catch (err) {
             console.error('FaceTracker init failed:', err);
-            
-            if (err.name === 'NotAllowedError' || err.message?.includes('denied')) {
-                loadingText.innerHTML = `
-                    <strong>Camera access denied</strong><br>
-                    <span style="font-size:12px;opacity:0.7;">
-                        Please allow camera access in your browser settings and reload.
-                    </span>`;
+            if (err.name === 'NotAllowedError') {
+                loadingText.innerHTML = '<strong>Camera access denied</strong><br><span style="font-size:12px;opacity:0.7;">Allow camera access and reload.</span>';
             } else if (err.name === 'NotFoundError') {
-                loadingText.innerHTML = `
-                    <strong>No camera found</strong><br>
-                    <span style="font-size:12px;opacity:0.7;">
-                        Connect a webcam or use a device with a camera.
-                    </span>`;
-            } else if (err.name === 'NotReadableError') {
-                loadingText.innerHTML = `
-                    <strong>Camera is in use</strong><br>
-                    <span style="font-size:12px;opacity:0.7;">
-                        Close other apps using the camera and try again.
-                    </span>`;
+                loadingText.innerHTML = '<strong>No camera found</strong><br><span style="font-size:12px;opacity:0.7;">Connect a webcam or use a device with a camera.</span>';
             } else {
-                loadingText.innerHTML = `
-                    <strong>Something went wrong</strong><br>
-                    <span style="font-size:12px;opacity:0.7;">
-                        ${err.message || 'Unknown error. Try refreshing.'}
-                    </span>`;
+                loadingText.innerHTML = `<strong>Error</strong><br><span style="font-size:12px;opacity:0.7;">${err.message || 'Unknown error'}</span>`;
             }
             return;
         }
 
-        loadingText.textContent = 'Ready!';
-
-        // Fade out loading screen
+        // Transition to calibration
+        loadingScreen.classList.add('fade-out');
         setTimeout(() => {
-            loadingScreen.classList.add('fade-out');
-            setTimeout(() => loadingScreen.style.display = 'none', 500);
-        }, 300);
+            loadingScreen.style.display = 'none';
+            startCalibration();
+        }, 400);
 
-        // Bind UI events
         bindEvents();
     }
 
-    // === Face results callback ===
+    // === CALIBRATION PHASE ===
+    function startCalibration() {
+        appState = 'calibrating';
+        calibScreen.classList.remove('hidden');
+        document.getElementById('ar-controls-wrap').classList.add('hidden');
+    }
+
+    function onCaptureCalibration() {
+        if (!lastFaceData || !lastFaceData.landmarks) {
+            document.getElementById('calib-status').textContent = 'No face detected. Look at the camera.';
+            return;
+        }
+
+        const result = calibration.analyze(
+            lastFaceData.landmarks,
+            lastFaceData.imageWidth,
+            lastFaceData.imageHeight
+        );
+
+        if (!result.qualityPassed) {
+            document.getElementById('calib-status').textContent = 
+                !result.isLookingStraight ? 'Look straight at the camera' :
+                !result.eyesVisible ? 'Make sure your eyes are visible' :
+                'Try again in better lighting';
+            return;
+        }
+
+        // Calibration passed!
+        arRenderer.setCalibration(result);
+
+        // Show results briefly
+        document.getElementById('calib-status').textContent = 
+            `PD: ${result.pdMm}mm · Face: ${result.faceShape} · ✓ Ready!`;
+        document.getElementById('calib-capture-btn').textContent = 'Start Try-On →';
+
+        setTimeout(() => {
+            startARSession();
+        }, 1200);
+    }
+
+    function skipCalibration() {
+        // Allow skipping — AR will use fallback eye-width scaling
+        startARSession();
+    }
+
+    function startARSession() {
+        appState = 'ar';
+        calibScreen.classList.add('hidden');
+        document.getElementById('ar-controls-wrap').classList.remove('hidden');
+    }
+
+    // === FACE RESULTS CALLBACK (runs every frame) ===
     let noFaceFrames = 0;
-    const noFaceHint = document.getElementById('no-face-hint');
 
     function onFaceResults(faceData) {
-        // Update AR overlay
+        lastFaceData = faceData;
+
+        if (appState === 'calibrating') {
+            // Draw face guide on overlay
+            drawCalibrationGuide(faceData);
+            return;
+        }
+
+        if (appState !== 'ar') return;
+
+        // AR mode: update glasses
         arRenderer.update(faceData);
 
-        // No-face hint (show after 60 frames = ~2 seconds without face)
+        // No-face hint
         if (!faceData) {
             noFaceFrames++;
-            if (noFaceFrames > 60) {
-                noFaceHint.classList.remove('hidden');
-            }
+            if (noFaceFrames > 60) noFaceHint.classList.remove('hidden');
         } else {
             noFaceFrames = 0;
             noFaceHint.classList.add('hidden');
         }
 
-        // Update face shape analysis
+        // Face shape analysis
         if (faceShapeActive && faceData) {
             const result = faceShapeDetector.analyze(faceData);
             if (result && result.sampleCount >= 15) {
                 document.getElementById('shape-label').textContent = result.label;
                 document.getElementById('shape-confidence').textContent = `${result.confidence}%`;
                 document.getElementById('shape-tip').textContent = result.tip;
-                
                 const recContainer = document.getElementById('shape-recommended');
                 recContainer.innerHTML = result.bestFrames.map(id => {
                     const model = GlassesModels.catalog.find(m => m.id === id);
                     return model ? `<span class="rec-tag" data-id="${id}">✓ ${model.name}</span>` : '';
                 }).join('');
-                
-                // Click recommended frame to try it
                 recContainer.querySelectorAll('.rec-tag').forEach(tag => {
                     tag.addEventListener('click', () => selectFrame(tag.dataset.id));
                 });
             }
         }
 
-        // Update PD if measuring
+        // PD measurement
         if (pdMeasurer.isActive && faceData) {
             const result = pdMeasurer.measure(faceData);
             if (result) {
                 pdValue.textContent = `PD: ${result.pdMm}mm (${result.confidence}%)`;
             }
-            // Draw PD overlay
             overlayCanvas.width = overlayCanvas.clientWidth;
             overlayCanvas.height = overlayCanvas.clientHeight;
             overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
             pdMeasurer.drawOverlay(overlayCtx, faceData, overlayCanvas.width, overlayCanvas.height);
-        } else {
-            // Clear overlay when PD not active
+        } else if (appState === 'ar') {
             if (overlayCanvas.width > 0) {
                 overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
             }
         }
 
-        // FPS counter
+        // FPS
         fpsFrames++;
         const now = performance.now();
         if (now - fpsLastTime >= 1000) {
@@ -160,10 +198,61 @@
         }
     }
 
-    // === Build Frame Selector ===
+    // === CALIBRATION GUIDE DRAWING ===
+    function drawCalibrationGuide(faceData) {
+        overlayCanvas.width = overlayCanvas.clientWidth;
+        overlayCanvas.height = overlayCanvas.clientHeight;
+        const ctx = overlayCtx;
+        const cw = overlayCanvas.width;
+        const ch = overlayCanvas.height;
+        ctx.clearRect(0, 0, cw, ch);
+
+        // Draw face guide circle
+        const cx = cw / 2;
+        const cy = ch * 0.42;
+        const radius = Math.min(cw, ch) * 0.28;
+
+        // Dim outside the circle
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(0, 0, cw, ch);
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // Circle border
+        const faceInCircle = faceData && isFaceInCircle(faceData, cx, cy, radius, cw, ch);
+        ctx.strokeStyle = faceInCircle ? '#00ff88' : 'rgba(255, 255, 255, 0.5)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Status text
+        const statusEl = document.getElementById('calib-status');
+        if (!faceData) {
+            statusEl.textContent = 'Position your face in the circle';
+        } else if (!faceInCircle) {
+            statusEl.textContent = 'Move your face into the circle';
+        } else {
+            statusEl.textContent = 'Perfect! Tap capture when ready';
+            document.getElementById('calib-capture-btn').disabled = false;
+        }
+    }
+
+    function isFaceInCircle(faceData, cx, cy, radius, cw, ch) {
+        // Check if face center is roughly inside the guide circle
+        const fx = (1 - faceData.position.x) * cw; // mirrored
+        const fy = faceData.position.y * ch;
+        const dist = Math.sqrt((fx - cx) ** 2 + (fy - cy) ** 2);
+        return dist < radius * 0.6;
+    }
+
+    // === BUILD FRAME SELECTOR ===
     function buildFrameSelector() {
         frameList.innerHTML = '';
-
         GlassesModels.catalog.forEach((model) => {
             const card = document.createElement('div');
             card.className = 'frame-card' + (model.id === currentModelId ? ' active' : '');
@@ -181,26 +270,23 @@
 
     function selectFrame(modelId) {
         currentModelId = modelId;
-
-        // Update active state
         document.querySelectorAll('.frame-card').forEach(card => {
             card.classList.toggle('active', card.dataset.id === modelId);
         });
-
-        // Update 3D glasses
         const spec = GlassesModels.catalog.find(m => m.id === modelId);
         arRenderer.setGlasses(modelId, arRenderer.currentColor || spec.defaultColor);
-
-        // Close color picker if open
         colorPicker.classList.add('hidden');
     }
 
-    // === Bind Events ===
+    // === BIND EVENTS ===
     function bindEvents() {
+        // Calibration
+        document.getElementById('calib-capture-btn').addEventListener('click', onCaptureCalibration);
+        document.getElementById('calib-skip-btn').addEventListener('click', skipCalibration);
+
         // Camera flip
         document.getElementById('btn-camera-flip').addEventListener('click', async () => {
             await faceTracker.flipCamera();
-            // Un-mirror for rear camera
             webcam.style.transform = faceTracker.currentFacing === 'user' ? 'scaleX(-1)' : 'none';
         });
 
@@ -230,78 +316,21 @@
             }
         });
 
-        // Compare mode
-        const btnCompare = document.getElementById('btn-compare');
-        const comparePanel = document.getElementById('compare-panel');
-        let compareSlots = [null, null]; // [leftModelId, rightModelId]
-        let compareFilling = 0; // which slot to fill next
-
-        btnCompare.addEventListener('click', () => {
-            // Take screenshot of current frame for left slot
-            const dataUrl = arRenderer.takeScreenshot();
-            const leftCanvas = document.getElementById('compare-canvas-left');
-            const leftCtx = leftCanvas.getContext('2d');
-            const leftLabel = document.getElementById('compare-label-left');
-
-            const img = new Image();
-            img.onload = () => {
-                leftCanvas.width = img.width;
-                leftCanvas.height = img.height;
-                leftCtx.drawImage(img, 0, 0);
-                leftLabel.textContent = GlassesModels.catalog.find(m => m.id === currentModelId)?.name || currentModelId;
-            };
-            img.src = dataUrl;
-
-            compareSlots[0] = currentModelId;
-            compareFilling = 1;
-            comparePanel.classList.remove('hidden');
-
-            // Right slot — hint to pick another frame
-            document.getElementById('compare-label-right').textContent = 'Now pick another frame ↓';
-            
-            // Clear right canvas
-            const rightCanvas = document.getElementById('compare-canvas-right');
-            const rightCtx = rightCanvas.getContext('2d');
-            rightCanvas.width = 1;
-            rightCanvas.height = 1;
-            rightCtx.clearRect(0, 0, 1, 1);
-        });
-
-        document.getElementById('compare-close').addEventListener('click', () => {
-            comparePanel.classList.add('hidden');
-            compareSlots = [null, null];
-            compareFilling = 0;
-        });
-
-        // Override frame selection during compare mode
-        const origSelectFrame = selectFrame;
-        selectFrame = function(modelId) {
-            origSelectFrame(modelId);
-
-            if (compareFilling === 1 && !comparePanel.classList.contains('hidden')) {
-                // Capture right slot after a short delay (let AR render)
-                setTimeout(() => {
-                    const dataUrl = arRenderer.takeScreenshot();
-                    const rightCanvas = document.getElementById('compare-canvas-right');
-                    const rightCtx = rightCanvas.getContext('2d');
-                    const rightLabel = document.getElementById('compare-label-right');
-
-                    const img = new Image();
-                    img.onload = () => {
-                        rightCanvas.width = img.width;
-                        rightCanvas.height = img.height;
-                        rightCtx.drawImage(img, 0, 0);
-                        rightLabel.textContent = GlassesModels.catalog.find(m => m.id === modelId)?.name || modelId;
-                    };
-                    img.src = dataUrl;
-
-                    compareSlots[1] = modelId;
-                    compareFilling = 0;
-                }, 500); // wait for AR to render new frame
+        // PD Copy
+        document.getElementById('pd-copy').addEventListener('click', () => {
+            const result = pdMeasurer.getResult();
+            if (result) {
+                const text = `PD: ${result.pdMm}mm`;
+                navigator.clipboard.writeText(text).then(() => {
+                    const btn = document.getElementById('pd-copy');
+                    btn.textContent = '✓';
+                    btn.classList.add('copied');
+                    setTimeout(() => { btn.textContent = '📋'; btn.classList.remove('copied'); }, 2000);
+                }).catch(() => prompt('Copy your PD:', text));
             }
-        };
+        });
 
-        // Face shape toggle
+        // Face shape
         const btnFaceShape = document.getElementById('btn-face-shape');
         const faceShapeResult = document.getElementById('face-shape-result');
         btnFaceShape.addEventListener('click', () => {
@@ -311,71 +340,88 @@
                 faceShapeDetector.reset();
                 faceShapeResult.classList.remove('hidden');
                 document.getElementById('shape-label').textContent = 'Analyzing...';
-                document.getElementById('shape-tip').textContent = 'Hold still for a moment';
+                document.getElementById('shape-tip').textContent = 'Hold still';
                 document.getElementById('shape-recommended').innerHTML = '';
             } else {
                 faceShapeResult.classList.add('hidden');
             }
         });
 
-        // PD Copy to clipboard
-        document.getElementById('pd-copy').addEventListener('click', () => {
-            const result = pdMeasurer.getResult();
-            if (result) {
-                const text = `PD: ${result.pdMm}mm`;
-                navigator.clipboard.writeText(text).then(() => {
-                    const btn = document.getElementById('pd-copy');
-                    btn.textContent = '✓';
-                    btn.classList.add('copied');
-                    setTimeout(() => {
-                        btn.textContent = '📋';
-                        btn.classList.remove('copied');
-                    }, 2000);
-                }).catch(() => {
-                    // Fallback for older browsers
-                    prompt('Copy your PD:', text);
-                });
-            }
+        // Compare mode
+        const btnCompare = document.getElementById('btn-compare');
+        const comparePanel = document.getElementById('compare-panel');
+        let compareFilling = 0;
+
+        btnCompare.addEventListener('click', () => {
+            const dataUrl = arRenderer.takeScreenshot();
+            const leftCanvas = document.getElementById('compare-canvas-left');
+            const leftCtx = leftCanvas.getContext('2d');
+            const img = new Image();
+            img.onload = () => {
+                leftCanvas.width = img.width; leftCanvas.height = img.height;
+                leftCtx.drawImage(img, 0, 0);
+                document.getElementById('compare-label-left').textContent =
+                    GlassesModels.catalog.find(m => m.id === currentModelId)?.name || currentModelId;
+            };
+            img.src = dataUrl;
+            compareFilling = 1;
+            comparePanel.classList.remove('hidden');
+            document.getElementById('compare-label-right').textContent = 'Pick another frame ↓';
         });
 
-        // Lens picker toggle
+        document.getElementById('compare-close').addEventListener('click', () => {
+            comparePanel.classList.add('hidden');
+            compareFilling = 0;
+        });
+
+        // Override selectFrame for compare
+        const origSelect = selectFrame;
+        selectFrame = function(modelId) {
+            origSelect(modelId);
+            if (compareFilling === 1 && !comparePanel.classList.contains('hidden')) {
+                setTimeout(() => {
+                    const dataUrl = arRenderer.takeScreenshot();
+                    const rightCanvas = document.getElementById('compare-canvas-right');
+                    const rightCtx = rightCanvas.getContext('2d');
+                    const img = new Image();
+                    img.onload = () => {
+                        rightCanvas.width = img.width; rightCanvas.height = img.height;
+                        rightCtx.drawImage(img, 0, 0);
+                        document.getElementById('compare-label-right').textContent =
+                            GlassesModels.catalog.find(m => m.id === modelId)?.name || modelId;
+                    };
+                    img.src = dataUrl;
+                    compareFilling = 0;
+                }, 500);
+            }
+        };
+
+        // Lens picker
         const btnLens = document.getElementById('btn-lens');
         const lensPicker = document.getElementById('lens-picker');
         btnLens.addEventListener('click', () => {
             lensPicker.classList.toggle('hidden');
             btnLens.classList.toggle('active');
-            // Close color picker if open
             colorPicker.classList.add('hidden');
-            document.getElementById('btn-color').classList.remove('active');
         });
-
-        // Lens options
         document.querySelectorAll('.lens-option').forEach(opt => {
             opt.addEventListener('click', () => {
-                const lensId = opt.dataset.lens;
-                arRenderer.setLensTint(lensId);
+                arRenderer.setLensTint(opt.dataset.lens);
                 document.querySelectorAll('.lens-option').forEach(o => o.classList.remove('active'));
                 opt.classList.add('active');
             });
         });
 
-        // Color picker toggle
+        // Color picker
         const btnColor = document.getElementById('btn-color');
         btnColor.addEventListener('click', () => {
             colorPicker.classList.toggle('hidden');
             btnColor.classList.toggle('active');
-            // Close lens picker if open
             lensPicker.classList.add('hidden');
-            btnLens.classList.remove('active');
         });
-
-        // Color swatches
         document.querySelectorAll('.color-swatch').forEach(swatch => {
             swatch.addEventListener('click', () => {
-                const color = swatch.dataset.color;
-                arRenderer.setColor(color);
-
-                // Update active swatch
+                arRenderer.setColor(swatch.dataset.color);
                 document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
                 swatch.classList.add('active');
             });
@@ -383,53 +429,33 @@
 
         // Close pickers on outside click
         document.addEventListener('click', (e) => {
-            if (!colorPicker.contains(e.target) && !document.getElementById('btn-color').contains(e.target)) {
-                colorPicker.classList.add('hidden');
-                document.getElementById('btn-color').classList.remove('active');
-            }
-            if (!lensPicker.contains(e.target) && !btnLens.contains(e.target)) {
-                lensPicker.classList.add('hidden');
-                btnLens.classList.remove('active');
-            }
+            if (!colorPicker.contains(e.target) && !document.getElementById('btn-color').contains(e.target))
+                { colorPicker.classList.add('hidden'); document.getElementById('btn-color').classList.remove('active'); }
+            if (lensPicker && !lensPicker.contains(e.target) && !btnLens.contains(e.target))
+                { lensPicker.classList.add('hidden'); btnLens.classList.remove('active'); }
         });
 
-        // Handle resize
-        window.addEventListener('resize', () => {
-            arRenderer._resize();
-        });
-
-        // === Swipe gestures for frame switching ===
+        // Swipe gestures
         const catalog = GlassesModels.catalog;
-        
         function nextFrame() {
             const idx = catalog.findIndex(m => m.id === currentModelId);
-            const next = catalog[(idx + 1) % catalog.length];
-            selectFrame(next.id);
-            scrollToActiveFrame();
-        }
-
-        function prevFrame() {
-            const idx = catalog.findIndex(m => m.id === currentModelId);
-            const prev = catalog[(idx - 1 + catalog.length) % catalog.length];
-            selectFrame(prev.id);
-            scrollToActiveFrame();
-        }
-
-        function scrollToActiveFrame() {
+            selectFrame(catalog[(idx + 1) % catalog.length].id);
             const active = document.querySelector('.frame-card.active');
             if (active) active.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
         }
-
-        new GestureHandler(document.getElementById('ar-container'), {
-            onSwipeLeft: nextFrame,
-            onSwipeRight: prevFrame,
-        });
-
-        // Keyboard: arrow keys
+        function prevFrame() {
+            const idx = catalog.findIndex(m => m.id === currentModelId);
+            selectFrame(catalog[(idx - 1 + catalog.length) % catalog.length].id);
+            const active = document.querySelector('.frame-card.active');
+            if (active) active.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        }
+        new GestureHandler(document.getElementById('ar-container'), { onSwipeLeft: nextFrame, onSwipeRight: prevFrame });
         document.addEventListener('keydown', (e) => {
             if (e.key === 'ArrowLeft') prevFrame();
             if (e.key === 'ArrowRight') nextFrame();
         });
+
+        window.addEventListener('resize', () => arRenderer._resize());
     }
 
     // === Start ===

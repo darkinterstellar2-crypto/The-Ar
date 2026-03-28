@@ -123,8 +123,20 @@ class FaceTracker {
         // Face rotation
         const rotation = this._computeRotation(landmarks, L);
 
-        // PD (pupillary distance) in pixels
+        // PD (pupillary distance) normalized
         const pdNormalized = this._distance2D(leftPupil, rightPupil);
+
+        // Live iris diameter (for distance-aware scaling)
+        const leftIrisTop = landmarks[469];
+        const leftIrisBottom = landmarks[471];
+        const rightIrisTop = landmarks[474];
+        const rightIrisBottom = landmarks[476];
+        let irisNormDiameter = 0;
+        if (leftIrisTop && leftIrisBottom && rightIrisTop && rightIrisBottom) {
+            const leftD = this._distance2D(leftIrisTop, leftIrisBottom);
+            const rightD = this._distance2D(rightIrisTop, rightIrisBottom);
+            irisNormDiameter = (leftD + rightD) / 2;
+        }
 
         const faceData = {
             // Glasses center position (normalized)
@@ -141,10 +153,11 @@ class FaceTracker {
             leftPupil: { x: leftPupil.x, y: leftPupil.y, z: leftPupil.z },
             rightPupil: { x: rightPupil.x, y: rightPupil.y, z: rightPupil.z },
             
-            // PD
+            // PD & iris
             pdNormalized,
+            irisNormDiameter,
             
-            // Ear positions (for temple rendering)
+            // Ear positions
             leftEar: { x: leftEar.x, y: leftEar.y, z: leftEar.z },
             rightEar: { x: rightEar.x, y: rightEar.y, z: rightEar.z },
 

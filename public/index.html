@@ -16,6 +16,19 @@
             </div>
         </div>
 
+        <!-- Calibration Screen -->
+        <div id="calibration-screen" class="hidden">
+            <div class="calib-ui">
+                <h2 class="calib-title">Face Scan</h2>
+                <p class="calib-subtitle">Align your face in the circle for precise fitting</p>
+                <p id="calib-status" class="calib-status">Position your face in the circle</p>
+                <div class="calib-buttons">
+                    <button id="calib-capture-btn" class="calib-btn primary">Capture</button>
+                    <button id="calib-skip-btn" class="calib-btn secondary">Skip →</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Main AR View -->
         <div id="ar-container">
             <video id="webcam" autoplay playsinline muted></video>
@@ -32,113 +45,97 @@
                 </div>
             </div>
 
-            <!-- Top Bar -->
-            <div id="top-bar">
-                <button id="btn-camera-flip" class="icon-btn" title="Flip Camera">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M20 7l-4-4m4 4l-4 4m4-4H10a7 7 0 00-7 7v1m4 4l4 4m-4-4l4-4m-4 4h10a7 7 0 007-7v-1"/>
-                    </svg>
-                </button>
-                <span id="fps-counter">-- FPS</span>
-                <button id="btn-screenshot" class="icon-btn" title="Take Screenshot">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="5" width="18" height="14" rx="2"/>
-                        <circle cx="12" cy="12" r="3"/>
-                        <path d="M8 5V3h8v2"/>
-                    </svg>
-                </button>
-            </div>
-
-            <!-- Swipe Hint -->
-            <div id="swipe-hint">← Swipe or use arrow keys to switch frames →</div>
-
-            <!-- Frame Selector -->
-            <div id="frame-selector">
-                <div id="frame-list"></div>
-            </div>
-
-            <!-- PD Display -->
-            <div id="pd-display" class="hidden">
-                <span id="pd-value">PD: --mm</span>
-                <button id="pd-copy" class="pd-copy-btn" title="Copy PD">📋</button>
-            </div>
-
-            <!-- Face Shape Result -->
-            <div id="face-shape-result" class="hidden">
-                <div class="shape-badge">
-                    <span id="shape-label">--</span>
-                    <span id="shape-confidence" class="shape-conf">--%</span>
+            <div id="ar-controls-wrap" class="hidden">
+                <!-- Top Bar -->
+                <div id="top-bar">
+                    <button id="btn-camera-flip" class="icon-btn" title="Flip Camera">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 7l-4-4m4 4l-4 4m4-4H10a7 7 0 00-7 7v1m4 4l4 4m-4-4l4-4m-4 4h10a7 7 0 007-7v-1"/>
+                        </svg>
+                    </button>
+                    <span id="fps-counter">-- FPS</span>
+                    <button id="btn-screenshot" class="icon-btn" title="Take Screenshot">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="5" width="18" height="14" rx="2"/>
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M8 5V3h8v2"/>
+                        </svg>
+                    </button>
                 </div>
-                <p id="shape-tip" class="shape-tip"></p>
-                <div id="shape-recommended" class="shape-frames"></div>
-            </div>
 
-            <!-- Controls -->
-            <div id="controls">
-                <button id="btn-pd" class="control-btn" title="Measure PD">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="8" cy="12" r="2"/><circle cx="16" cy="12" r="2"/>
-                        <path d="M10 12h4"/><path d="M2 12h4m8 0h4"/>
-                    </svg>
-                    <span>PD</span>
-                </button>
-                <button id="btn-compare" class="control-btn" title="Compare Frames">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="2" y="4" width="8" height="16" rx="1"/>
-                        <rect x="14" y="4" width="8" height="16" rx="1"/>
-                    </svg>
-                    <span>Compare</span>
-                </button>
-                <button id="btn-face-shape" class="control-btn" title="Face Shape Analysis">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="8" r="5"/><path d="M5 21v-1a7 7 0 0114 0v1"/>
-                    </svg>
-                    <span>Shape</span>
-                </button>
-                <button id="btn-lens" class="control-btn" title="Lens Tint">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="8"/>
-                        <path d="M12 4v16M4 12h16"/>
-                    </svg>
-                    <span>Lens</span>
-                </button>
-                <button id="btn-color" class="control-btn" title="Frame Color">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"/>
-                        <path d="M12 2a10 10 0 010 20"/>
-                    </svg>
-                    <span>Color</span>
-                </button>
-            </div>
-        </div>
+                <!-- Swipe Hint -->
+                <div id="swipe-hint">← Swipe or use arrow keys to switch frames →</div>
 
-        <!-- Color Picker Modal -->
-        <div id="color-picker" class="hidden">
-            <div class="color-grid">
-                <button class="color-swatch" data-color="#1a1a1a" style="background:#1a1a1a" title="Black"></button>
-                <button class="color-swatch" data-color="#8B4513" style="background:#8B4513" title="Brown"></button>
-                <button class="color-swatch" data-color="#C0C0C0" style="background:#C0C0C0" title="Silver"></button>
-                <button class="color-swatch" data-color="#FFD700" style="background:#FFD700" title="Gold"></button>
-                <button class="color-swatch" data-color="#1E3A5F" style="background:#1E3A5F" title="Navy"></button>
-                <button class="color-swatch" data-color="#8B0000" style="background:#8B0000" title="Burgundy"></button>
-                <button class="color-swatch" data-color="#2F4F4F" style="background:#2F4F4F" title="Dark Teal"></button>
-                <button class="color-swatch" data-color="#FF69B4" style="background:#FF69B4" title="Pink"></button>
-                <button class="color-swatch" data-color="#4169E1" style="background:#4169E1" title="Royal Blue"></button>
-                <button class="color-swatch" data-color="#228B22" style="background:#228B22" title="Forest Green"></button>
-                <button class="color-swatch" data-color="#FF4500" style="background:#FF4500" title="Orange Red"></button>
-                <button class="color-swatch" data-color="#800080" style="background:#800080" title="Purple"></button>
+                <!-- Frame Selector -->
+                <div id="frame-selector">
+                    <div id="frame-list"></div>
+                </div>
+
+                <!-- PD Display -->
+                <div id="pd-display" class="hidden">
+                    <span id="pd-value">PD: --mm</span>
+                    <button id="pd-copy" class="pd-copy-btn" title="Copy PD">📋</button>
+                </div>
+
+                <!-- Face Shape Result -->
+                <div id="face-shape-result" class="hidden">
+                    <div class="shape-badge">
+                        <span id="shape-label">--</span>
+                        <span id="shape-confidence" class="shape-conf">--%</span>
+                    </div>
+                    <p id="shape-tip" class="shape-tip"></p>
+                    <div id="shape-recommended" class="shape-frames"></div>
+                </div>
+
+                <!-- Controls -->
+                <div id="controls">
+                    <button id="btn-compare" class="control-btn" title="Compare Frames">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="4" width="8" height="16" rx="1"/>
+                            <rect x="14" y="4" width="8" height="16" rx="1"/>
+                        </svg>
+                        <span>Compare</span>
+                    </button>
+                    <button id="btn-face-shape" class="control-btn" title="Face Shape">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="8" r="5"/><path d="M5 21v-1a7 7 0 0114 0v1"/>
+                        </svg>
+                        <span>Shape</span>
+                    </button>
+                    <button id="btn-pd" class="control-btn" title="Measure PD">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="8" cy="12" r="2"/><circle cx="16" cy="12" r="2"/>
+                            <path d="M10 12h4"/><path d="M2 12h4m8 0h4"/>
+                        </svg>
+                        <span>PD</span>
+                    </button>
+                    <button id="btn-lens" class="control-btn" title="Lens Tint">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="8"/>
+                            <path d="M12 4v16M4 12h16"/>
+                        </svg>
+                        <span>Lens</span>
+                    </button>
+                    <button id="btn-color" class="control-btn" title="Frame Color">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 2a10 10 0 010 20"/>
+                        </svg>
+                        <span>Color</span>
+                    </button>
+                </div>
             </div>
         </div>
 
         <!-- Compare Mode Panel -->
         <div id="compare-panel" class="hidden">
             <div class="compare-container">
-                <div class="compare-slot" id="compare-left">
+                <div class="compare-slot">
                     <canvas id="compare-canvas-left" class="compare-canvas"></canvas>
                     <span class="compare-label" id="compare-label-left">Tap a frame</span>
                 </div>
                 <div class="compare-divider"></div>
-                <div class="compare-slot" id="compare-right">
+                <div class="compare-slot">
                     <canvas id="compare-canvas-right" class="compare-canvas"></canvas>
                     <span class="compare-label" id="compare-label-right">Tap another</span>
                 </div>
@@ -146,41 +143,35 @@
             <button id="compare-close" class="icon-btn" style="position:absolute;top:10px;right:10px;">✕</button>
         </div>
 
-        <!-- Lens Picker Modal -->
+        <!-- Lens Picker -->
         <div id="lens-picker" class="hidden">
             <div class="lens-grid">
-                <button class="lens-option active" data-lens="clear" title="Clear">
-                    <div class="lens-preview" style="background: transparent; border: 2px solid rgba(255,255,255,0.3);"></div>
-                    <span>Clear</span>
-                </button>
-                <button class="lens-option" data-lens="sun-grey" title="Grey Tint">
-                    <div class="lens-preview" style="background: rgba(30,30,30,0.6);"></div>
-                    <span>Grey</span>
-                </button>
-                <button class="lens-option" data-lens="sun-brown" title="Brown Tint">
-                    <div class="lens-preview" style="background: rgba(80,40,10,0.5);"></div>
-                    <span>Brown</span>
-                </button>
-                <button class="lens-option" data-lens="sun-green" title="Green Tint">
-                    <div class="lens-preview" style="background: rgba(20,60,20,0.5);"></div>
-                    <span>Green</span>
-                </button>
-                <button class="lens-option" data-lens="blue-light" title="Blue Light">
-                    <div class="lens-preview" style="background: rgba(255,250,200,0.15);"></div>
-                    <span>Blue Light</span>
-                </button>
-                <button class="lens-option" data-lens="mirror-blue" title="Mirror Blue">
-                    <div class="lens-preview" style="background: linear-gradient(135deg, #1e90ff, #00bfff);"></div>
-                    <span>Mirror</span>
-                </button>
-                <button class="lens-option" data-lens="gradient" title="Gradient">
-                    <div class="lens-preview" style="background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);"></div>
-                    <span>Gradient</span>
-                </button>
-                <button class="lens-option" data-lens="rose" title="Rose">
-                    <div class="lens-preview" style="background: rgba(200,50,80,0.35);"></div>
-                    <span>Rosé</span>
-                </button>
+                <button class="lens-option active" data-lens="clear"><div class="lens-preview" style="background:transparent;border:2px solid rgba(255,255,255,0.3);"></div><span>Clear</span></button>
+                <button class="lens-option" data-lens="sun-grey"><div class="lens-preview" style="background:rgba(30,30,30,0.6);"></div><span>Grey</span></button>
+                <button class="lens-option" data-lens="sun-brown"><div class="lens-preview" style="background:rgba(80,40,10,0.5);"></div><span>Brown</span></button>
+                <button class="lens-option" data-lens="sun-green"><div class="lens-preview" style="background:rgba(20,60,20,0.5);"></div><span>Green</span></button>
+                <button class="lens-option" data-lens="blue-light"><div class="lens-preview" style="background:rgba(255,250,200,0.15);"></div><span>Blue Light</span></button>
+                <button class="lens-option" data-lens="mirror-blue"><div class="lens-preview" style="background:linear-gradient(135deg,#1e90ff,#00bfff);"></div><span>Mirror</span></button>
+                <button class="lens-option" data-lens="gradient"><div class="lens-preview" style="background:linear-gradient(to bottom,rgba(0,0,0,0.7),transparent);"></div><span>Gradient</span></button>
+                <button class="lens-option" data-lens="rose"><div class="lens-preview" style="background:rgba(200,50,80,0.35);"></div><span>Rosé</span></button>
+            </div>
+        </div>
+
+        <!-- Color Picker -->
+        <div id="color-picker" class="hidden">
+            <div class="color-grid">
+                <button class="color-swatch" data-color="#1a1a1a" style="background:#1a1a1a"></button>
+                <button class="color-swatch" data-color="#8B4513" style="background:#8B4513"></button>
+                <button class="color-swatch" data-color="#C0C0C0" style="background:#C0C0C0"></button>
+                <button class="color-swatch" data-color="#FFD700" style="background:#FFD700"></button>
+                <button class="color-swatch" data-color="#1E3A5F" style="background:#1E3A5F"></button>
+                <button class="color-swatch" data-color="#8B0000" style="background:#8B0000"></button>
+                <button class="color-swatch" data-color="#2F4F4F" style="background:#2F4F4F"></button>
+                <button class="color-swatch" data-color="#FF69B4" style="background:#FF69B4"></button>
+                <button class="color-swatch" data-color="#4169E1" style="background:#4169E1"></button>
+                <button class="color-swatch" data-color="#228B22" style="background:#228B22"></button>
+                <button class="color-swatch" data-color="#FF4500" style="background:#FF4500"></button>
+                <button class="color-swatch" data-color="#800080" style="background:#800080"></button>
             </div>
         </div>
 
@@ -202,9 +193,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     
     <!-- App Modules -->
+    <script src="../src/js/one-euro-filter.js"></script>
     <script src="../src/js/gestures.js"></script>
     <script src="../src/js/glasses-models.js"></script>
     <script src="../src/js/face-tracker.js"></script>
+    <script src="../src/js/calibration.js"></script>
     <script src="../src/js/ar-renderer.js"></script>
     <script src="../src/js/pd-measurer.js"></script>
     <script src="../src/js/face-shape.js"></script>

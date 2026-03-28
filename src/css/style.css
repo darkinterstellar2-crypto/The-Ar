@@ -31,6 +31,55 @@ html, body {
 @keyframes spin { to { transform: rotate(360deg); } }
 #loading-text { font-size: 14px; color: rgba(255,255,255,0.6); }
 
+/* === Calibration Screen === */
+#calibration-screen {
+    position: fixed; inset: 0; z-index: 30;
+    pointer-events: none;
+    display: flex; flex-direction: column;
+    justify-content: flex-end;
+    padding-bottom: 40px;
+}
+.calib-ui {
+    text-align: center;
+    pointer-events: auto;
+    padding: 0 20px;
+}
+.calib-title {
+    font-size: 22px; font-weight: 700;
+    margin-bottom: 6px;
+}
+.calib-subtitle {
+    font-size: 13px; color: rgba(255,255,255,0.6);
+    margin-bottom: 16px;
+}
+.calib-status {
+    font-size: 14px; font-weight: 500;
+    color: rgba(255,255,255,0.8);
+    margin-bottom: 20px;
+    min-height: 20px;
+}
+.calib-buttons {
+    display: flex; gap: 12px; justify-content: center;
+}
+.calib-btn {
+    padding: 14px 32px;
+    border-radius: 14px;
+    font-size: 15px; font-weight: 600;
+    cursor: pointer; border: none;
+    transition: all 0.2s;
+}
+.calib-btn.primary {
+    background: #fff; color: #000;
+}
+.calib-btn.primary:hover { background: #e0e0e0; }
+.calib-btn.primary:disabled { opacity: 0.4; cursor: not-allowed; }
+.calib-btn.secondary {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.2);
+}
+.calib-btn.secondary:hover { background: rgba(255,255,255,0.25); }
+
 /* === AR Container === */
 #ar-container { 
     position: relative; width: 100%; height: 100%; 
