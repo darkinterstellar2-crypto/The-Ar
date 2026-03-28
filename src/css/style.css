@@ -33,11 +33,11 @@ html, body {
 
 /* === Calibration Screen === */
 #calibration-screen {
-    position: fixed; inset: 0; z-index: 30;
+    position: fixed; inset: 0; z-index: 50;
     pointer-events: none;
     display: flex; flex-direction: column;
     justify-content: flex-end;
-    padding-bottom: 40px;
+    padding-bottom: 60px;
 }
 .calib-ui {
     text-align: center;

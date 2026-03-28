@@ -134,8 +134,16 @@
     function onFaceResults(faceData) {
         lastFaceData = faceData;
 
+        // FPS counter (always runs)
+        fpsFrames++;
+        const now = performance.now();
+        if (now - fpsLastTime >= 1000) {
+            fpsCounter.textContent = `${fpsFrames} FPS`;
+            fpsFrames = 0;
+            fpsLastTime = now;
+        }
+
         if (appState === 'calibrating') {
-            // Draw face guide on overlay
             drawCalibrationGuide(faceData);
             return;
         }
@@ -188,14 +196,6 @@
             }
         }
 
-        // FPS
-        fpsFrames++;
-        const now = performance.now();
-        if (now - fpsLastTime >= 1000) {
-            fpsCounter.textContent = `${fpsFrames} FPS`;
-            fpsFrames = 0;
-            fpsLastTime = now;
-        }
     }
 
     // === CALIBRATION GUIDE DRAWING ===
@@ -207,27 +207,28 @@
         const ch = overlayCanvas.height;
         ctx.clearRect(0, 0, cw, ch);
 
-        // Draw face guide circle
+        // Draw face guide OVAL (taller than wide, like a face)
         const cx = cw / 2;
-        const cy = ch * 0.42;
-        const radius = Math.min(cw, ch) * 0.28;
+        const cy = ch * 0.40;
+        const rx = Math.min(cw, ch) * 0.22; // horizontal radius
+        const ry = rx * 1.35; // vertical radius — oval shaped like a face
 
-        // Dim outside the circle
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        // Dim outside the oval
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
         ctx.fillRect(0, 0, cw, ch);
         ctx.save();
         ctx.globalCompositeOperation = 'destination-out';
         ctx.beginPath();
-        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
 
-        // Circle border
-        const faceInCircle = faceData && isFaceInCircle(faceData, cx, cy, radius, cw, ch);
+        // Oval border
+        const faceInCircle = faceData && isFaceInOval(faceData, cx, cy, rx, ry, cw, ch);
         ctx.strokeStyle = faceInCircle ? '#00ff88' : 'rgba(255, 255, 255, 0.5)';
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
         ctx.stroke();
 
         // Status text
@@ -242,12 +243,11 @@
         }
     }
 
-    function isFaceInCircle(faceData, cx, cy, radius, cw, ch) {
-        // Check if face center is roughly inside the guide circle
-        const fx = (1 - faceData.position.x) * cw; // mirrored
+    function isFaceInOval(faceData, cx, cy, rx, ry, cw, ch) {
+        const fx = (1 - faceData.position.x) * cw;
         const fy = faceData.position.y * ch;
-        const dist = Math.sqrt((fx - cx) ** 2 + (fy - cy) ** 2);
-        return dist < radius * 0.6;
+        // Point inside ellipse: (x-cx)²/rx² + (y-cy)²/ry² < 1
+        return ((fx - cx) ** 2 / (rx * rx) + (fy - cy) ** 2 / (ry * ry)) < 0.6;
     }
 
     // === BUILD FRAME SELECTOR ===
