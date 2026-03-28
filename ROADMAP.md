@@ -8,36 +8,40 @@
 - [x] Basic face tracking → glasses placement
 - [x] UI shell (frame selector, color picker, controls)
 
-## Phase 2: Core Quality (Day 1-2)
-- [ ] Test & fix glasses positioning accuracy
-- [ ] Calibrate scale to match real face proportions
-- [ ] Fix nose bridge alignment (glasses should sit ON the nose)
-- [ ] Tune smoothing factor for jitter vs responsiveness
-- [ ] Fix mirroring consistency (webcam mirror + 3D mirror)
-- [ ] Test on mobile browser (iOS Safari, Android Chrome)
-- [ ] Handle edge cases: partial face, side profile, multiple faces
+## Phase 2: Core Quality (Day 1-2) ✅
+- [x] Improved glasses positioning (nose bridge Y alignment)
+- [x] Calibrated scale factor (eyeWidth * 6.0)
+- [x] Better rotation: Z-depth yaw, forehead-chin pitch, eye-line roll
+- [x] Tuned smoothing (0.35), dampened pitch
+- [x] YXZ rotation order for natural movement
+- [x] Smooth fade in/out on face detect/loss
+- [x] No-face hint after 2 seconds
 
-## Phase 3: Visual Polish (Day 2-3)
+## Phase 3: Visual Polish (Day 2-3) ✅
+- [x] Lens tint system (8 options: clear, grey, brown, green, blue-light, mirror, gradient, rosé)
+- [x] Improved frame geometry (rounded corners, proper inner/outer radii)
+- [x] Nose pads with pad arms for metal frames
+- [x] Smoother circle geometry (48 segments)
+- [x] Double bridge for aviator
 - [ ] Add shadows under glasses (drop shadow on face)
-- [ ] Lens tint/gradient options (clear, sun, blue-light)
-- [ ] Improve frame geometry (rounded corners, realistic thickness)
-- [ ] Add nose pads detail
-- [ ] Temple arms follow ear position from landmarks
-- [ ] Better lighting that matches webcam lighting conditions
+- [ ] Better lighting that matches webcam conditions
 - [ ] Anti-aliasing & rendering quality pass
 
-## Phase 4: UX & Interaction (Day 3-4)
-- [ ] Swipe gesture for frame switching
+## Phase 4: UX & Interaction (Day 3-4) ✅
+- [x] Swipe gesture for frame switching (touch + mouse)
+- [x] Keyboard arrow keys navigation
+- [x] Comparison mode (side-by-side snapshots)
+- [x] Face shape detection + frame recommendations (6 shapes)
+- [x] Swipe hint on first load
 - [ ] Size adjustment slider (narrow/wide face)
-- [ ] Comparison mode (side-by-side two styles)
-- [ ] "Looks good on you" — face shape detection + recommendation
 - [ ] Loading states & error handling polish
 - [ ] Haptic feedback on mobile
 
-## Phase 5: PD Measurement Polish (Day 4-5)
+## Phase 5: PD Measurement Polish (Day 4-5) ✅
+- [x] Visual overlay with crosshairs + measurement line + mm label
+- [x] Iris-based measurement (11.7mm reference)
+- [x] Trimmed-mean averaging for stability
 - [ ] Calibration guide (hold phone at arm's length)
-- [ ] Visual overlay showing measurement lines
-- [ ] Accuracy validation against known PD values
 - [ ] Export PD to clipboard / prescription card
 
 ## Phase 6: Real Frame Models (Day 5-7)

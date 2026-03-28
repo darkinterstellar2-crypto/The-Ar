@@ -50,8 +50,33 @@
         try {
             await faceTracker.init(webcam, onFaceResults);
         } catch (err) {
-            loadingText.textContent = 'Camera access denied. Please allow camera.';
             console.error('FaceTracker init failed:', err);
+            
+            if (err.name === 'NotAllowedError' || err.message?.includes('denied')) {
+                loadingText.innerHTML = `
+                    <strong>Camera access denied</strong><br>
+                    <span style="font-size:12px;opacity:0.7;">
+                        Please allow camera access in your browser settings and reload.
+                    </span>`;
+            } else if (err.name === 'NotFoundError') {
+                loadingText.innerHTML = `
+                    <strong>No camera found</strong><br>
+                    <span style="font-size:12px;opacity:0.7;">
+                        Connect a webcam or use a device with a camera.
+                    </span>`;
+            } else if (err.name === 'NotReadableError') {
+                loadingText.innerHTML = `
+                    <strong>Camera is in use</strong><br>
+                    <span style="font-size:12px;opacity:0.7;">
+                        Close other apps using the camera and try again.
+                    </span>`;
+            } else {
+                loadingText.innerHTML = `
+                    <strong>Something went wrong</strong><br>
+                    <span style="font-size:12px;opacity:0.7;">
+                        ${err.message || 'Unknown error. Try refreshing.'}
+                    </span>`;
+            }
             return;
         }
 
@@ -290,6 +315,26 @@
                 document.getElementById('shape-recommended').innerHTML = '';
             } else {
                 faceShapeResult.classList.add('hidden');
+            }
+        });
+
+        // PD Copy to clipboard
+        document.getElementById('pd-copy').addEventListener('click', () => {
+            const result = pdMeasurer.getResult();
+            if (result) {
+                const text = `PD: ${result.pdMm}mm`;
+                navigator.clipboard.writeText(text).then(() => {
+                    const btn = document.getElementById('pd-copy');
+                    btn.textContent = '✓';
+                    btn.classList.add('copied');
+                    setTimeout(() => {
+                        btn.textContent = '📋';
+                        btn.classList.remove('copied');
+                    }, 2000);
+                }).catch(() => {
+                    // Fallback for older browsers
+                    prompt('Copy your PD:', text);
+                });
             }
         });
 

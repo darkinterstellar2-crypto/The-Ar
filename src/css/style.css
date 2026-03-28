@@ -130,7 +130,19 @@ html, body {
     font-size: 16px; font-weight: 600;
     font-variant-numeric: tabular-nums;
     transition: all 0.3s ease;
+    display: flex; align-items: center; gap: 8px;
 }
+.pd-copy-btn {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 8px;
+    padding: 2px 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+.pd-copy-btn:hover { background: rgba(255,255,255,0.25); }
+.pd-copy-btn.copied { background: rgba(76,175,80,0.4); }
 
 /* === Bottom Controls === */
 #controls {
