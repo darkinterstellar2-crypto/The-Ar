@@ -157,6 +157,10 @@ class FaceTracker {
             pdNormalized,
             irisNormDiameter,
             
+            // Eye outer corners (landmarks 33 & 263) — for dynamic scaling & roll
+            leftEyeOuter: { x: leftEyeOuter.x, y: leftEyeOuter.y, z: leftEyeOuter.z },
+            rightEyeOuter: { x: rightEyeOuter.x, y: rightEyeOuter.y, z: rightEyeOuter.z },
+
             // Ear positions
             leftEar: { x: leftEar.x, y: leftEar.y, z: leftEar.z },
             rightEar: { x: rightEar.x, y: rightEar.y, z: rightEar.z },

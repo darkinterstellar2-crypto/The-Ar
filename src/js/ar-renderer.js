@@ -198,7 +198,7 @@ class ARRenderer {
         const now = performance.now();
 
         // === POSITION ===
-        // Use nose bridge as anchor (landmark #6) — this IS where glasses sit
+        // Use nose bridge as anchor (landmark #6)
         const lmX = faceData.noseBridge ? faceData.noseBridge.x : faceData.position.x;
         const lmY = faceData.noseBridge ? faceData.noseBridge.y : faceData.position.y;
 
@@ -212,26 +212,37 @@ class ARRenderer {
 
         const pos = this.posFilter.filter({ x: rawX, y: rawY }, now);
 
-        // === SCALE ===
-        // Eye width in NDC units (multiply by 2 to convert from [0,1] to [-1,1] range)
-        const eyeWidthNDC = (faceData.eyeWidth / this._cropScaleX) * 2;
-        // Glasses should span ~1.15x eye-to-eye distance
-        const modelWidth = 0.19; // base model width at scale=1
-        const rawScale = (eyeWidthNDC * 1.15) / modelWidth;
+        // === DYNAMIC SCALING from eye landmarks 33 & 263 ===
+        // Calculate eye distance in NDC space — this scales with camera distance
+        const leftEye = faceData.leftEyeOuter || { x: faceData.position.x - faceData.eyeWidth / 2, y: faceData.position.y };
+        const rightEye = faceData.rightEyeOuter || { x: faceData.position.x + faceData.eyeWidth / 2, y: faceData.position.y };
+
+        const dx = (rightEye.x - leftEye.x) / this._cropScaleX;
+        const dy = (rightEye.y - leftEye.y) / this._cropScaleY;
+        const eyeDistance = Math.sqrt(dx * dx + dy * dy);
+
+        // Scale in NDC (multiply by 2 for [0,1]→[-1,1] range)
+        // Magic multiplier: tweak until glasses width matches face
+        const scaleMultiplier = 5.0;
+        const rawScale = eyeDistance * 2 * scaleMultiplier;
 
         const scale = this.scaleFilter.filter(rawScale, now);
 
-        // === ROTATION ===
+        // === Z-AXIS ROLL from eye landmarks ===
+        // atan2(dy, dx) gives the tilt angle directly
+        const rollAngle = Math.atan2(dy, dx);
+
+        // Yaw and pitch from face tracker
         const rawRot = {
             yaw: -faceData.rotation.yaw,
             pitch: faceData.rotation.pitch * 0.5,
-            roll: -faceData.rotation.roll,
+            roll: rollAngle, // Direct from eye landmarks — no negation, CSS mirror handles it
         };
         const rot = this.rotFilter.filter(rawRot, now);
 
         // === APPLY ===
         this.glassesGroup.position.set(pos.x, pos.y, 0);
-        this.glassesGroup.scale.setScalar(scale);
+        this.glassesGroup.scale.set(scale, scale, scale);
         this.glassesGroup.rotation.order = 'YXZ';
         this.glassesGroup.rotation.set(rot.pitch, rot.yaw, rot.roll);
 
