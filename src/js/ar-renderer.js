@@ -180,8 +180,10 @@ class ARRenderer {
         // === POSITION ===
         // FaceMesh: x=[0,1], y=[0,1]. Ortho: x=[-0.5*aspect, 0.5*aspect], y=[-0.5, 0.5]
         // Mirror X to match CSS scaleX(-1) on video
+        // Use nose bridge position directly instead of eye center
+        const noseY = faceData.noseBridge ? faceData.noseBridge.y : faceData.position.y;
         const rawX = (0.5 - faceData.position.x) * aspect;
-        const rawY = 0.5 - faceData.position.y + 0.015; // nudge DOWN to nose bridge level
+        const rawY = 0.5 - noseY; // nose bridge IS the glasses position
 
         const pos = this.posFilter.filter({ x: rawX, y: rawY }, now);
 
