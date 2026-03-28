@@ -81,6 +81,13 @@
                     </svg>
                     <span>PD</span>
                 </button>
+                <button id="btn-compare" class="control-btn" title="Compare Frames">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="4" width="8" height="16" rx="1"/>
+                        <rect x="14" y="4" width="8" height="16" rx="1"/>
+                    </svg>
+                    <span>Compare</span>
+                </button>
                 <button id="btn-face-shape" class="control-btn" title="Face Shape Analysis">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="8" r="5"/><path d="M5 21v-1a7 7 0 0114 0v1"/>
@@ -120,6 +127,22 @@
                 <button class="color-swatch" data-color="#FF4500" style="background:#FF4500" title="Orange Red"></button>
                 <button class="color-swatch" data-color="#800080" style="background:#800080" title="Purple"></button>
             </div>
+        </div>
+
+        <!-- Compare Mode Panel -->
+        <div id="compare-panel" class="hidden">
+            <div class="compare-container">
+                <div class="compare-slot" id="compare-left">
+                    <canvas id="compare-canvas-left" class="compare-canvas"></canvas>
+                    <span class="compare-label" id="compare-label-left">Tap a frame</span>
+                </div>
+                <div class="compare-divider"></div>
+                <div class="compare-slot" id="compare-right">
+                    <canvas id="compare-canvas-right" class="compare-canvas"></canvas>
+                    <span class="compare-label" id="compare-label-right">Tap another</span>
+                </div>
+            </div>
+            <button id="compare-close" class="icon-btn" style="position:absolute;top:10px;right:10px;">✕</button>
         </div>
 
         <!-- Lens Picker Modal -->

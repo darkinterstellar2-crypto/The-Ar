@@ -323,6 +323,41 @@ html, body {
 /* === Utility === */
 .hidden { display: none !important; }
 
+/* === Compare Mode === */
+#compare-panel {
+    position: fixed; inset: 0; z-index: 50;
+    background: rgba(0,0,0,0.95);
+    display: flex; align-items: center; justify-content: center;
+}
+.compare-container {
+    display: flex; width: 100%; height: 100%;
+    align-items: center;
+}
+.compare-slot {
+    flex: 1; height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    position: relative;
+}
+.compare-canvas {
+    width: 100%; height: 80%;
+    border-radius: 8px;
+    object-fit: contain;
+}
+.compare-divider {
+    width: 2px; height: 70%;
+    background: rgba(255,255,255,0.2);
+    flex-shrink: 0;
+}
+.compare-label {
+    position: absolute; bottom: 40px;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(8px);
+    padding: 6px 16px;
+    border-radius: 12px;
+    font-size: 14px; font-weight: 600;
+}
+
 /* === Swipe Indicator (shown briefly on load) === */
 #swipe-hint {
     position: absolute; bottom: 185px; left: 50%;

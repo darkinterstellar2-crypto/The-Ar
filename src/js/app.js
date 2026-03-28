@@ -205,6 +205,77 @@
             }
         });
 
+        // Compare mode
+        const btnCompare = document.getElementById('btn-compare');
+        const comparePanel = document.getElementById('compare-panel');
+        let compareSlots = [null, null]; // [leftModelId, rightModelId]
+        let compareFilling = 0; // which slot to fill next
+
+        btnCompare.addEventListener('click', () => {
+            // Take screenshot of current frame for left slot
+            const dataUrl = arRenderer.takeScreenshot();
+            const leftCanvas = document.getElementById('compare-canvas-left');
+            const leftCtx = leftCanvas.getContext('2d');
+            const leftLabel = document.getElementById('compare-label-left');
+
+            const img = new Image();
+            img.onload = () => {
+                leftCanvas.width = img.width;
+                leftCanvas.height = img.height;
+                leftCtx.drawImage(img, 0, 0);
+                leftLabel.textContent = GlassesModels.catalog.find(m => m.id === currentModelId)?.name || currentModelId;
+            };
+            img.src = dataUrl;
+
+            compareSlots[0] = currentModelId;
+            compareFilling = 1;
+            comparePanel.classList.remove('hidden');
+
+            // Right slot — hint to pick another frame
+            document.getElementById('compare-label-right').textContent = 'Now pick another frame ↓';
+            
+            // Clear right canvas
+            const rightCanvas = document.getElementById('compare-canvas-right');
+            const rightCtx = rightCanvas.getContext('2d');
+            rightCanvas.width = 1;
+            rightCanvas.height = 1;
+            rightCtx.clearRect(0, 0, 1, 1);
+        });
+
+        document.getElementById('compare-close').addEventListener('click', () => {
+            comparePanel.classList.add('hidden');
+            compareSlots = [null, null];
+            compareFilling = 0;
+        });
+
+        // Override frame selection during compare mode
+        const origSelectFrame = selectFrame;
+        selectFrame = function(modelId) {
+            origSelectFrame(modelId);
+
+            if (compareFilling === 1 && !comparePanel.classList.contains('hidden')) {
+                // Capture right slot after a short delay (let AR render)
+                setTimeout(() => {
+                    const dataUrl = arRenderer.takeScreenshot();
+                    const rightCanvas = document.getElementById('compare-canvas-right');
+                    const rightCtx = rightCanvas.getContext('2d');
+                    const rightLabel = document.getElementById('compare-label-right');
+
+                    const img = new Image();
+                    img.onload = () => {
+                        rightCanvas.width = img.width;
+                        rightCanvas.height = img.height;
+                        rightCtx.drawImage(img, 0, 0);
+                        rightLabel.textContent = GlassesModels.catalog.find(m => m.id === modelId)?.name || modelId;
+                    };
+                    img.src = dataUrl;
+
+                    compareSlots[1] = modelId;
+                    compareFilling = 0;
+                }, 500); // wait for AR to render new frame
+            }
+        };
+
         // Face shape toggle
         const btnFaceShape = document.getElementById('btn-face-shape');
         const faceShapeResult = document.getElementById('face-shape-result');
