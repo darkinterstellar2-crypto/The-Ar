@@ -111,44 +111,6 @@
             noFaceHint.classList.add('hidden');
         }
 
-        // DEBUG: draw face landmarks on overlay canvas to verify positioning
-        if (faceData && window._debugLandmarks) {
-            overlayCanvas.width = overlayCanvas.clientWidth;
-            overlayCanvas.height = overlayCanvas.clientHeight;
-            const dctx = overlayCtx;
-            const cw = overlayCanvas.width;
-            const ch = overlayCanvas.height;
-            
-            // Draw key landmarks
-            const points = [
-                { p: faceData.position, color: '#ff0000', label: 'center' },
-                { p: faceData.leftPupil, color: '#00ff00', label: 'L pupil' },
-                { p: faceData.rightPupil, color: '#00ff00', label: 'R pupil' },
-                { p: faceData.noseBridge, color: '#ffff00', label: 'bridge' },
-                { p: faceData.leftEar, color: '#ff00ff', label: 'L ear' },
-                { p: faceData.rightEar, color: '#ff00ff', label: 'R ear' },
-            ];
-            
-            points.forEach(({ p, color, label }) => {
-                const sx = (1 - p.x) * cw; // mirror X
-                const sy = p.y * ch;
-                dctx.fillStyle = color;
-                dctx.beginPath();
-                dctx.arc(sx, sy, 5, 0, Math.PI * 2);
-                dctx.fill();
-                dctx.fillStyle = '#fff';
-                dctx.font = '10px sans-serif';
-                dctx.fillText(label, sx + 8, sy + 3);
-            });
-            
-            // Show eyeWidth value
-            dctx.fillStyle = '#fff';
-            dctx.font = '14px monospace';
-            dctx.fillText(`eyeW: ${faceData.eyeWidth.toFixed(3)}`, 10, 20);
-            dctx.fillText(`aspect: ${(cw/ch).toFixed(2)}`, 10, 38);
-            dctx.fillText(`scale: ${(faceData.eyeWidth * (cw/ch) * 1.4 / 0.19).toFixed(2)}`, 10, 56);
-        }
-
         // Update face shape analysis
         if (faceShapeActive && faceData) {
             const result = faceShapeDetector.analyze(faceData);

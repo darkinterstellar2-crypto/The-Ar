@@ -174,7 +174,8 @@ class ARRenderer {
 
         // Map to ortho coords (mirror X to match CSS mirror)
         const targetX = (0.5 - faceX) * aspect;
-        const targetY = 0.5 - faceY;
+        // Offset Y down — glasses sit slightly below eye center (on nose bridge)
+        const targetY = 0.5 - faceY - 0.02;
         const targetZ = 0;
 
         // === SCALE ===

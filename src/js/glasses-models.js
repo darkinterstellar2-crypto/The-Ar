@@ -160,32 +160,6 @@ const GlassesModels = {
             group.add(browLeft, browRight);
         }
 
-        // === Nose pads (for metal frames) ===
-        if (spec.metallic) {
-            const padSize = S * 0.03;
-            const padGeo = new THREE.SphereGeometry(padSize, 8, 8);
-            const padMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.3, roughness: 0.5 });
-            
-            const leftPad = new THREE.Mesh(padGeo, padMat);
-            leftPad.position.set(-spec.bridgeWidth * S * 0.6, -spec.lensHeight * S * 0.15, S * 0.04);
-            
-            const rightPad = new THREE.Mesh(padGeo, padMat);
-            rightPad.position.set(spec.bridgeWidth * S * 0.6, -spec.lensHeight * S * 0.15, S * 0.04);
-            
-            const padArmGeo = new THREE.CylinderGeometry(S * 0.008, S * 0.008, S * 0.12, 6);
-            const padArmMat = new THREE.MeshStandardMaterial({ color: frameColor, metalness: 0.8, roughness: 0.2 });
-            
-            const leftArm = new THREE.Mesh(padArmGeo, padArmMat);
-            leftArm.position.set(-spec.bridgeWidth * S * 0.5, -spec.lensHeight * S * 0.05, S * 0.02);
-            leftArm.rotation.z = 0.5;
-            
-            const rightArm = new THREE.Mesh(padArmGeo, padArmMat);
-            rightArm.position.set(spec.bridgeWidth * S * 0.5, -spec.lensHeight * S * 0.05, S * 0.02);
-            rightArm.rotation.z = -0.5;
-            
-            group.add(leftPad, rightPad, leftArm, rightArm);
-        }
-
         group.add(leftFrame, rightFrame, leftLensMesh, rightLensMesh, bridge, leftTemple, rightTemple);
 
         // Store spec reference for adjustments
@@ -257,7 +231,7 @@ const GlassesModels = {
             outerShape.holes.push(hole);
         }
 
-        const extrudeSettings = { depth: 0.006, bevelEnabled: true, bevelThickness: 0.001, bevelSize: 0.001, bevelSegments: 2 };
+        const extrudeSettings = { depth: 0.004, bevelEnabled: true, bevelThickness: 0.0005, bevelSize: 0.0005, bevelSegments: 1 };
         const geometry = new THREE.ExtrudeGeometry(outerShape, extrudeSettings);
         const mesh = new THREE.Mesh(geometry, material);
         mesh.position.z = -0.0015;
@@ -265,20 +239,20 @@ const GlassesModels = {
     },
 
     _createBridge(spec, S, material) {
-        const bw = spec.bridgeWidth * S + spec.lensWidth * S * 0.15;
-        const bh = spec.metallic ? 0.004 : 0.007;
-        const bd = spec.metallic ? 0.004 : 0.007;
+        const bw = spec.bridgeWidth * S;
+        const bh = spec.metallic ? S * 0.02 : S * 0.03;
+        const bd = S * 0.03;
         const geometry = new THREE.BoxGeometry(bw, bh, bd);
         const mesh = new THREE.Mesh(geometry, material);
-        mesh.position.y = spec.lensHeight * S * 0.2;
-        mesh.position.z = 0.002;
+        mesh.position.y = spec.lensHeight * S * 0.1;
+        mesh.position.z = 0.003;
 
         if (spec.bridgeStyle === 'double') {
             const group = new THREE.Group();
-            const top = mesh;
-            const bottom = new THREE.Mesh(geometry.clone(), material);
-            bottom.position.y = spec.lensHeight * S * 0.02;
-            bottom.position.z = 0.002;
+            const top = mesh.clone();
+            top.position.y = spec.lensHeight * S * 0.15;
+            const bottom = mesh.clone();
+            bottom.position.y = spec.lensHeight * S * 0.0;
             group.add(top, bottom);
             return group;
         }
@@ -287,10 +261,10 @@ const GlassesModels = {
     },
 
     _createTemples(spec, S, material) {
-        const templeLength = S * 1.2; // scale with frame size
-        const templeThickness = spec.templeStyle === 'thick' ? S * 0.06 : 
-                                spec.templeStyle === 'medium' ? S * 0.045 : S * 0.025;
-        const templeHeight = spec.templeStyle === 'thick' ? S * 0.07 : S * 0.04;
+        // Short visible temple stubs — just the front part visible from the front
+        const templeLength = S * 0.25;
+        const templeThickness = spec.templeStyle === 'thick' ? S * 0.05 : S * 0.03;
+        const templeHeight = spec.templeStyle === 'thick' ? S * 0.06 : S * 0.035;
 
         const lensOuter = spec.lensWidth * S / 2 + spec.bridgeWidth * S / 2 + spec.lensWidth * S / 2;
 
@@ -298,19 +272,17 @@ const GlassesModels = {
 
         const left = new THREE.Mesh(geo, material);
         left.position.set(
-            -lensOuter - templeLength / 2 + S * 0.03,
+            -lensOuter - templeLength / 2,
             spec.lensHeight * S * 0.15,
-            -templeLength / 3
+            0
         );
-        left.rotation.y = 0.35;
 
         const right = new THREE.Mesh(geo, material);
         right.position.set(
-            lensOuter + templeLength / 2 - S * 0.03,
+            lensOuter + templeLength / 2,
             spec.lensHeight * S * 0.15,
-            -templeLength / 3
+            0
         );
-        right.rotation.y = -0.35;
 
         return { left, right };
     },
