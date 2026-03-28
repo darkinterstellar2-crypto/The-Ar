@@ -181,14 +181,14 @@ class ARRenderer {
         // FaceMesh: x=[0,1], y=[0,1]. Ortho: x=[-0.5*aspect, 0.5*aspect], y=[-0.5, 0.5]
         // Mirror X to match CSS scaleX(-1) on video
         const rawX = (0.5 - faceData.position.x) * aspect;
-        const rawY = 0.5 - faceData.position.y - 0.015; // slight down offset for nose bridge
+        const rawY = 0.5 - faceData.position.y + 0.015; // nudge DOWN to nose bridge level
 
         const pos = this.posFilter.filter({ x: rawX, y: rawY }, now);
 
         // === SCALE ===
-        // Glasses width should span ~1.4x the eye-to-eye distance
-        const modelWidth = 0.19; // glasses model width at scale=1
-        const rawScale = (faceData.eyeWidth * aspect * 1.4) / modelWidth;
+        // Glasses width should span ~1.1x the eye-to-eye distance
+        const modelWidth = 0.19;
+        const rawScale = (faceData.eyeWidth * aspect * 1.05) / modelWidth;
 
         const scale = this.scaleFilter.filter(rawScale, now);
 

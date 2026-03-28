@@ -110,13 +110,13 @@ const GlassesModels = {
         });
 
         const lensMat = new THREE.MeshStandardMaterial({
-            color: 0x111111,
-            metalness: 0.1,
-            roughness: 0.0,
+            color: 0x222222,
+            metalness: 0.05,
+            roughness: 0.05,
             transparent: true,
-            opacity: 0.3,
+            opacity: 0.12,
         });
-        lensMat.userData = { baseOpacity: 0.3, isLens: true };
+        lensMat.userData = { baseOpacity: 0.12, isLens: true };
 
         // Scale factor for face-relative sizing
         // This determines the base size of the glasses geometry
