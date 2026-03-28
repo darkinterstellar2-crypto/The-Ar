@@ -209,6 +209,10 @@ class ARRenderer {
         this._render();
     }
 
+    _render() {
+        this.renderer.render(this.scene, this.camera);
+    }
+
     // Constant used for iris-based scaling
     get IRIS_DIAMETER_MM() { return 11.7; }
 
