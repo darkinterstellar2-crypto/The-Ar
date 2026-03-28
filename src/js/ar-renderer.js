@@ -186,29 +186,9 @@ class ARRenderer {
         const pos = this.posFilter.filter({ x: rawX, y: rawY }, now);
 
         // === SCALE ===
-        // If calibration exists, use iris anchor for real-world scaling
-        // Otherwise fall back to eye-width proportional scaling
-        let rawScale;
-
-        if (this.calibration && this.calibration.irisNormDiameter > 0) {
-            // Current iris size in normalized coords tells us distance from camera
-            // Bigger iris = closer = larger scale, smaller = farther = smaller scale
-            const currentIris = faceData.irisNormDiameter || this.calibration.irisNormDiameter;
-            
-            // Scale relative to calibration (if user moves closer/farther, glasses follow)
-            const distanceRatio = currentIris / this.calibration.irisNormDiameter;
-            
-            // Use calibrated PD to determine glasses width
-            // PD in mm / iris_mm = PD in iris units
-            // Glasses should span ~1.3x PD width
-            const targetWidthNorm = (this.calibration.pdMm / this.IRIS_DIAMETER_MM) * currentIris * 1.4;
-            const modelWidth = 0.19;
-            rawScale = (targetWidthNorm * aspect) / modelWidth;
-        } else {
-            // Fallback: eye-width proportional
-            const modelWidth = 0.19;
-            rawScale = (faceData.eyeWidth * aspect * 1.4) / modelWidth;
-        }
+        // Glasses width should span ~1.4x the eye-to-eye distance
+        const modelWidth = 0.19; // glasses model width at scale=1
+        const rawScale = (faceData.eyeWidth * aspect * 1.4) / modelWidth;
 
         const scale = this.scaleFilter.filter(rawScale, now);
 
