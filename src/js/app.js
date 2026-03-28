@@ -9,7 +9,9 @@
     // === Instances ===
     const faceTracker = new FaceTracker();
     const pdMeasurer = new PDMeasurer();
+    const faceShapeDetector = new FaceShapeDetector();
     let arRenderer = null;
+    let faceShapeActive = false;
     let currentModelId = 'aviator';
     let fpsFrames = 0;
     let fpsLastTime = performance.now();
@@ -80,6 +82,27 @@
         } else {
             noFaceFrames = 0;
             noFaceHint.classList.add('hidden');
+        }
+
+        // Update face shape analysis
+        if (faceShapeActive && faceData) {
+            const result = faceShapeDetector.analyze(faceData);
+            if (result && result.sampleCount >= 15) {
+                document.getElementById('shape-label').textContent = result.label;
+                document.getElementById('shape-confidence').textContent = `${result.confidence}%`;
+                document.getElementById('shape-tip').textContent = result.tip;
+                
+                const recContainer = document.getElementById('shape-recommended');
+                recContainer.innerHTML = result.bestFrames.map(id => {
+                    const model = GlassesModels.catalog.find(m => m.id === id);
+                    return model ? `<span class="rec-tag" data-id="${id}">✓ ${model.name}</span>` : '';
+                }).join('');
+                
+                // Click recommended frame to try it
+                recContainer.querySelectorAll('.rec-tag').forEach(tag => {
+                    tag.addEventListener('click', () => selectFrame(tag.dataset.id));
+                });
+            }
         }
 
         // Update PD if measuring
@@ -167,6 +190,23 @@
                 btnPD.classList.add('active');
                 pdDisplay.classList.remove('hidden');
                 pdValue.textContent = 'PD: Measuring...';
+            }
+        });
+
+        // Face shape toggle
+        const btnFaceShape = document.getElementById('btn-face-shape');
+        const faceShapeResult = document.getElementById('face-shape-result');
+        btnFaceShape.addEventListener('click', () => {
+            faceShapeActive = !faceShapeActive;
+            btnFaceShape.classList.toggle('active');
+            if (faceShapeActive) {
+                faceShapeDetector.reset();
+                faceShapeResult.classList.remove('hidden');
+                document.getElementById('shape-label').textContent = 'Analyzing...';
+                document.getElementById('shape-tip').textContent = 'Hold still for a moment';
+                document.getElementById('shape-recommended').innerHTML = '';
+            } else {
+                faceShapeResult.classList.add('hidden');
             }
         });
 

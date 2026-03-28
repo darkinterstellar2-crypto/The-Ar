@@ -58,6 +58,16 @@
                 <span id="pd-value">PD: --mm</span>
             </div>
 
+            <!-- Face Shape Result -->
+            <div id="face-shape-result" class="hidden">
+                <div class="shape-badge">
+                    <span id="shape-label">--</span>
+                    <span id="shape-confidence" class="shape-conf">--%</span>
+                </div>
+                <p id="shape-tip" class="shape-tip"></p>
+                <div id="shape-recommended" class="shape-frames"></div>
+            </div>
+
             <!-- Controls -->
             <div id="controls">
                 <button id="btn-pd" class="control-btn" title="Measure PD">
@@ -66,6 +76,12 @@
                         <path d="M10 12h4"/><path d="M2 12h4m8 0h4"/>
                     </svg>
                     <span>PD</span>
+                </button>
+                <button id="btn-face-shape" class="control-btn" title="Face Shape Analysis">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="8" r="5"/><path d="M5 21v-1a7 7 0 0114 0v1"/>
+                    </svg>
+                    <span>Shape</span>
                 </button>
                 <button id="btn-lens" class="control-btn" title="Lens Tint">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -162,6 +178,7 @@
     <script src="../src/js/face-tracker.js"></script>
     <script src="../src/js/ar-renderer.js"></script>
     <script src="../src/js/pd-measurer.js"></script>
+    <script src="../src/js/face-shape.js"></script>
     <script src="../src/js/app.js"></script>
 </body>
 </html>
