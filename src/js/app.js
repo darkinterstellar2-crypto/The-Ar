@@ -281,6 +281,39 @@
         window.addEventListener('resize', () => {
             arRenderer._resize();
         });
+
+        // === Swipe gestures for frame switching ===
+        const catalog = GlassesModels.catalog;
+        
+        function nextFrame() {
+            const idx = catalog.findIndex(m => m.id === currentModelId);
+            const next = catalog[(idx + 1) % catalog.length];
+            selectFrame(next.id);
+            scrollToActiveFrame();
+        }
+
+        function prevFrame() {
+            const idx = catalog.findIndex(m => m.id === currentModelId);
+            const prev = catalog[(idx - 1 + catalog.length) % catalog.length];
+            selectFrame(prev.id);
+            scrollToActiveFrame();
+        }
+
+        function scrollToActiveFrame() {
+            const active = document.querySelector('.frame-card.active');
+            if (active) active.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        }
+
+        new GestureHandler(document.getElementById('ar-container'), {
+            onSwipeLeft: nextFrame,
+            onSwipeRight: prevFrame,
+        });
+
+        // Keyboard: arrow keys
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') prevFrame();
+            if (e.key === 'ArrowRight') nextFrame();
+        });
     }
 
     // === Start ===
