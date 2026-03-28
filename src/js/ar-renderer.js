@@ -236,7 +236,7 @@ class ARRenderer {
         const rawRot = {
             yaw: -faceData.rotation.yaw,
             pitch: faceData.rotation.pitch * 0.5,
-            roll: rollAngle, // Direct from eye landmarks — no negation, CSS mirror handles it
+            roll: -rollAngle, // Negate: MediaPipe Y-down vs Three.js Y-up
         };
         const rot = this.rotFilter.filter(rawRot, now);
 
