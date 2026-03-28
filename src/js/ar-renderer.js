@@ -165,21 +165,24 @@ class ARRenderer {
         const aspect = this.canvas.width / this.canvas.height;
 
         // === Position ===
-        // FaceMesh: x=[0,1] left-to-right, y=[0,1] top-to-bottom, z=depth
-        // Three.js ortho: x=[-0.5*aspect, 0.5*aspect], y=[-0.5, 0.5]
-        // Webcam is CSS mirrored (scaleX(-1)), so we also mirror x in 3D
+        // FaceMesh coords: x=[0,1] left→right, y=[0,1] top→bottom
+        // Three.js ortho coords: x=[-0.5*aspect, +0.5*aspect], y=[+0.5, -0.5]
+        // Webcam video is CSS mirrored (scaleX(-1)), so mirror X in 3D too
         
-        // Use nose bridge for vertical position (more stable than eye center)
-        const bridgeY = faceData.noseBridge.y;
+        // Use the midpoint between inner eye corners for placement
+        // This sits right at the nose bridge where glasses rest
+        const faceX = faceData.position.x;
+        const faceY = faceData.position.y;
         
-        const targetX = (0.5 - faceData.position.x) * aspect;
-        const targetY = -(bridgeY - 0.5);
-        const targetZ = 0; // keep on screen plane
+        const targetX = (0.5 - faceX) * aspect;
+        const targetY = (0.5 - faceY);
+        const targetZ = 0;
 
         // === Scale ===
-        // eyeWidth = normalized distance between outer eye corners
-        // Map to Three.js world units — tuned for accurate face fit
-        const targetScale = faceData.eyeWidth * 6.0;
+        // eyeWidth = 2D normalized distance between outer eye corners
+        // Multiply to match Three.js world units
+        // The glasses model is built around S=0.065, eyeWidth ~0.15-0.25
+        const targetScale = faceData.eyeWidth * 3.8;
 
         // === Rotation ===
         const targetYaw = -faceData.rotation.yaw;

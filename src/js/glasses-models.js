@@ -119,7 +119,8 @@ const GlassesModels = {
         lensMat.userData = { baseOpacity: 0.3, isLens: true };
 
         // Scale factor for face-relative sizing
-        const S = 0.065;
+        // This determines the base size of the glasses geometry
+        const S = 0.18;
 
         // === Left Lens + Frame ===
         const leftLens = this._createLens(spec, S);
@@ -161,25 +162,25 @@ const GlassesModels = {
 
         // === Nose pads (for metal frames) ===
         if (spec.metallic) {
-            const padGeo = new THREE.SphereGeometry(0.0015, 8, 8);
+            const padSize = S * 0.03;
+            const padGeo = new THREE.SphereGeometry(padSize, 8, 8);
             const padMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.3, roughness: 0.5 });
             
             const leftPad = new THREE.Mesh(padGeo, padMat);
-            leftPad.position.set(-spec.bridgeWidth * S * 0.5, -spec.lensHeight * S * 0.1, 0.003);
+            leftPad.position.set(-spec.bridgeWidth * S * 0.6, -spec.lensHeight * S * 0.15, S * 0.04);
             
             const rightPad = new THREE.Mesh(padGeo, padMat);
-            rightPad.position.set(spec.bridgeWidth * S * 0.5, -spec.lensHeight * S * 0.1, 0.003);
+            rightPad.position.set(spec.bridgeWidth * S * 0.6, -spec.lensHeight * S * 0.15, S * 0.04);
             
-            // Pad arms
-            const padArmGeo = new THREE.CylinderGeometry(0.0004, 0.0004, 0.008, 6);
+            const padArmGeo = new THREE.CylinderGeometry(S * 0.008, S * 0.008, S * 0.12, 6);
             const padArmMat = new THREE.MeshStandardMaterial({ color: frameColor, metalness: 0.8, roughness: 0.2 });
             
             const leftArm = new THREE.Mesh(padArmGeo, padArmMat);
-            leftArm.position.set(-spec.bridgeWidth * S * 0.4, -spec.lensHeight * S * 0.02, 0.002);
+            leftArm.position.set(-spec.bridgeWidth * S * 0.5, -spec.lensHeight * S * 0.05, S * 0.02);
             leftArm.rotation.z = 0.5;
             
             const rightArm = new THREE.Mesh(padArmGeo, padArmMat);
-            rightArm.position.set(spec.bridgeWidth * S * 0.4, -spec.lensHeight * S * 0.02, 0.002);
+            rightArm.position.set(spec.bridgeWidth * S * 0.5, -spec.lensHeight * S * 0.05, S * 0.02);
             rightArm.rotation.z = -0.5;
             
             group.add(leftPad, rightPad, leftArm, rightArm);
@@ -227,7 +228,7 @@ const GlassesModels = {
     _createFrame(spec, S, material) {
         const w = spec.lensWidth * S;
         const h = spec.lensHeight * S;
-        const thickness = 0.0015;
+        const thickness = spec.metallic ? 0.003 : 0.005;
 
         // Frame ring using a torus-like shape (simplified as a ring)
         const outerShape = new THREE.Shape();
@@ -256,7 +257,7 @@ const GlassesModels = {
             outerShape.holes.push(hole);
         }
 
-        const extrudeSettings = { depth: 0.003, bevelEnabled: false };
+        const extrudeSettings = { depth: 0.006, bevelEnabled: true, bevelThickness: 0.001, bevelSize: 0.001, bevelSegments: 2 };
         const geometry = new THREE.ExtrudeGeometry(outerShape, extrudeSettings);
         const mesh = new THREE.Mesh(geometry, material);
         mesh.position.z = -0.0015;
@@ -265,21 +266,19 @@ const GlassesModels = {
 
     _createBridge(spec, S, material) {
         const bw = spec.bridgeWidth * S + spec.lensWidth * S * 0.15;
-        const bh = spec.metallic ? 0.002 : 0.004;
-        const bd = spec.metallic ? 0.002 : 0.004;
+        const bh = spec.metallic ? 0.004 : 0.007;
+        const bd = spec.metallic ? 0.004 : 0.007;
         const geometry = new THREE.BoxGeometry(bw, bh, bd);
         const mesh = new THREE.Mesh(geometry, material);
-        // Bridge sits at top of lens area (nose bridge position)
         mesh.position.y = spec.lensHeight * S * 0.2;
-        mesh.position.z = 0.001;
+        mesh.position.z = 0.002;
 
-        // Double bridge for aviator
         if (spec.bridgeStyle === 'double') {
             const group = new THREE.Group();
             const top = mesh;
             const bottom = new THREE.Mesh(geometry.clone(), material);
-            bottom.position.y = spec.lensHeight * S * 0.05;
-            bottom.position.z = 0.001;
+            bottom.position.y = spec.lensHeight * S * 0.02;
+            bottom.position.z = 0.002;
             group.add(top, bottom);
             return group;
         }
@@ -288,27 +287,26 @@ const GlassesModels = {
     },
 
     _createTemples(spec, S, material) {
-        const templeLength = 0.07;
-        const templeThickness = spec.templeStyle === 'thick' ? 0.005 : 
-                                spec.templeStyle === 'medium' ? 0.004 : 0.002;
-        const templeHeight = spec.templeStyle === 'thick' ? 0.006 : 0.003;
+        const templeLength = S * 1.2; // scale with frame size
+        const templeThickness = spec.templeStyle === 'thick' ? S * 0.06 : 
+                                spec.templeStyle === 'medium' ? S * 0.045 : S * 0.025;
+        const templeHeight = spec.templeStyle === 'thick' ? S * 0.07 : S * 0.04;
 
         const lensOuter = spec.lensWidth * S / 2 + spec.bridgeWidth * S / 2 + spec.lensWidth * S / 2;
 
-        // Temple arm (slightly tapers back)
         const geo = new THREE.BoxGeometry(templeLength, templeHeight, templeThickness);
 
         const left = new THREE.Mesh(geo, material);
         left.position.set(
-            -lensOuter - templeLength / 2 + 0.002,
+            -lensOuter - templeLength / 2 + S * 0.03,
             spec.lensHeight * S * 0.15,
-            -templeLength / 3 // extend backward
+            -templeLength / 3
         );
-        left.rotation.y = 0.35; // angle back toward ears
+        left.rotation.y = 0.35;
 
         const right = new THREE.Mesh(geo, material);
         right.position.set(
-            lensOuter + templeLength / 2 - 0.002,
+            lensOuter + templeLength / 2 - S * 0.03,
             spec.lensHeight * S * 0.15,
             -templeLength / 3
         );
@@ -319,11 +317,11 @@ const GlassesModels = {
 
     _createBrowline(spec, S, material, side) {
         const w = spec.lensWidth * S;
-        const h = spec.lensHeight * S * 0.25;
-        const geometry = new THREE.BoxGeometry(w + 0.004, h, 0.005);
+        const h = spec.lensHeight * S * 0.28;
+        const geometry = new THREE.BoxGeometry(w + S * 0.05, h, S * 0.06);
         const mesh = new THREE.Mesh(geometry, material);
         const xOffset = (spec.lensWidth * S / 2 + spec.bridgeWidth * S / 2) * side;
-        mesh.position.set(xOffset, spec.lensHeight * S * 0.3, -0.001);
+        mesh.position.set(xOffset, spec.lensHeight * S * 0.3, -S * 0.01);
         return mesh;
     },
 

@@ -117,8 +117,8 @@ class FaceTracker {
         const centerY = (leftEyeInner.y + rightEyeInner.y) / 2;
         const centerZ = (leftEyeInner.z + rightEyeInner.z) / 2;
 
-        // Width: distance between outer eye corners (for scaling)
-        const eyeWidth = this._distance3D(leftEyeOuter, rightEyeOuter);
+        // Width: distance between outer eye corners (2D for screen-space scaling)
+        const eyeWidth = this._distance2D(leftEyeOuter, rightEyeOuter);
 
         // Face rotation
         const rotation = this._computeRotation(landmarks, L);
