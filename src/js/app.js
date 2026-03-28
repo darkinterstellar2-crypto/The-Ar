@@ -86,7 +86,7 @@
 
     function onCaptureCalibration() {
         if (!lastFaceData || !lastFaceData.landmarks) {
-            document.getElementById('calib-status').textContent = 'No face detected. Look at the camera.';
+            document.getElementById('calib-status').textContent = '⚠ No face detected. Look at the camera.';
             return;
         }
 
@@ -96,36 +96,48 @@
             lastFaceData.imageHeight
         );
 
-        if (!result.qualityPassed) {
-            document.getElementById('calib-status').textContent = 
-                !result.isLookingStraight ? 'Look straight at the camera' :
-                !result.eyesVisible ? 'Make sure your eyes are visible' :
-                'Try again in better lighting';
-            return;
-        }
+        console.log('Calibration result:', result);
 
-        // Calibration passed!
+        // Always proceed — quality check is advisory, not blocking
         arRenderer.setCalibration(result);
 
         // Show results briefly
+        const qualityNote = result.qualityPassed ? '✓' : '⚠ (try better lighting next time)';
         document.getElementById('calib-status').textContent = 
-            `PD: ${result.pdMm}mm · Face: ${result.faceShape} · ✓ Ready!`;
-        document.getElementById('calib-capture-btn').textContent = 'Start Try-On →';
+            `PD: ${result.pdMm}mm · Face: ${result.faceShape} · ${qualityNote}`;
+        document.getElementById('calib-capture-btn').textContent = 'Starting...';
 
         setTimeout(() => {
             startARSession();
-        }, 1200);
+        }, 800);
     }
 
     function skipCalibration() {
-        // Allow skipping — AR will use fallback eye-width scaling
+        // Skip calibration — AR uses fallback eye-width scaling
+        console.log('Calibration skipped');
         startARSession();
     }
 
     function startARSession() {
         appState = 'ar';
+        
+        // Hide calibration screen
         calibScreen.classList.add('hidden');
+        
+        // Clear the overlay canvas (remove calibration guide drawing)
+        overlayCanvas.width = overlayCanvas.clientWidth;
+        overlayCanvas.height = overlayCanvas.clientHeight;
+        overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+        
+        // Show AR controls
         document.getElementById('ar-controls-wrap').classList.remove('hidden');
+        
+        // Make sure glasses are loaded
+        if (!arRenderer.glassesGroup) {
+            arRenderer.setGlasses(currentModelId);
+        }
+        
+        console.log('AR session started. Calibration:', calibration.getResult());
     }
 
     // === FACE RESULTS CALLBACK (runs every frame) ===
