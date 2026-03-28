@@ -164,25 +164,33 @@ class ARRenderer {
 
         const aspect = this.canvas.width / this.canvas.height;
 
-        // === Position ===
-        // FaceMesh coords: x=[0,1] left→right, y=[0,1] top→bottom
-        // Three.js ortho coords: x=[-0.5*aspect, +0.5*aspect], y=[+0.5, -0.5]
-        // Webcam video is CSS mirrored (scaleX(-1)), so mirror X in 3D too
+        // === COORDINATE MAPPING ===
+        // FaceMesh: x=[0,1] left→right, y=[0,1] top→bottom (in original video)
+        // Three.js ortho camera: x=[-0.5*aspect, +0.5*aspect], y=[-0.5, +0.5]
+        // Webcam video is CSS mirrored via scaleX(-1), so we also mirror X
         
-        // Use the midpoint between inner eye corners for placement
-        // This sits right at the nose bridge where glasses rest
-        const faceX = faceData.position.x;
-        const faceY = faceData.position.y;
-        
+        const faceX = faceData.position.x; // 0-1 normalized
+        const faceY = faceData.position.y; // 0-1 normalized
+
+        // Map to ortho coords (mirror X to match CSS mirror)
         const targetX = (0.5 - faceX) * aspect;
-        const targetY = (0.5 - faceY);
+        const targetY = 0.5 - faceY;
         const targetZ = 0;
 
-        // === Scale ===
-        // eyeWidth = 2D normalized distance between outer eye corners
-        // Multiply to match Three.js world units
-        // The glasses model is built around S=0.065, eyeWidth ~0.15-0.25
-        const targetScale = faceData.eyeWidth * 3.8;
+        // === SCALE ===
+        // Goal: glasses width should match ~1.3x the eye-to-eye distance on screen
+        //
+        // eyeWidth is 2D normalized distance between outer eye corners
+        // In ortho space, horizontal distances scale by `aspect`
+        // Model width at scale=1 with S=0.18:
+        //   total ≈ 2 * (lensWidth*S/2 + bridgeWidth*S/2 + lensWidth*S/2) ≈ 0.19
+        //
+        // Target width in ortho = eyeWidth * aspect * 1.3 (glasses wider than eyes)
+        // Scale = targetWidth / modelWidth
+        
+        const modelWidth = 0.19; // approx width of glasses group at scale=1
+        const targetWidth = faceData.eyeWidth * aspect * 1.4;
+        const targetScale = targetWidth / modelWidth;
 
         // === Rotation ===
         const targetYaw = -faceData.rotation.yaw;
