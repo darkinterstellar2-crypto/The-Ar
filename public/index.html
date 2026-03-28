@@ -21,6 +21,16 @@
             <video id="webcam" autoplay playsinline muted></video>
             <canvas id="ar-canvas"></canvas>
             
+            <!-- No Face Hint -->
+            <div id="no-face-hint" class="hidden">
+                <div class="hint-content">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="32" height="32">
+                        <circle cx="12" cy="8" r="5"/><path d="M3 21v-2a7 7 0 0114 0v2"/>
+                    </svg>
+                    <span>Position your face in the center</span>
+                </div>
+            </div>
+
             <!-- Top Bar -->
             <div id="top-bar">
                 <button id="btn-camera-flip" class="icon-btn" title="Flip Camera">

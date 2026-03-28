@@ -64,9 +64,23 @@
     }
 
     // === Face results callback ===
+    let noFaceFrames = 0;
+    const noFaceHint = document.getElementById('no-face-hint');
+
     function onFaceResults(faceData) {
         // Update AR overlay
         arRenderer.update(faceData);
+
+        // No-face hint (show after 60 frames = ~2 seconds without face)
+        if (!faceData) {
+            noFaceFrames++;
+            if (noFaceFrames > 60) {
+                noFaceHint.classList.remove('hidden');
+            }
+        } else {
+            noFaceFrames = 0;
+            noFaceHint.classList.add('hidden');
+        }
 
         // Update PD if measuring
         if (pdMeasurer.isActive && faceData) {

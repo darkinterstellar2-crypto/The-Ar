@@ -211,6 +211,30 @@ html, body {
 }
 .screenshot-btn:hover { background: rgba(255,255,255,0.25); }
 
+/* === No Face Hint === */
+#no-face-hint {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 5;
+    pointer-events: none;
+    animation: hintPulse 2s ease-in-out infinite;
+}
+.hint-content {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 8px;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(10px);
+    padding: 20px 28px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.7);
+    font-size: 14px;
+}
+@keyframes hintPulse {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+}
+
 /* === Utility === */
 .hidden { display: none !important; }
 

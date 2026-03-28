@@ -19,8 +19,11 @@ class ARRenderer {
             position: { x: 0, y: 0, z: 0 },
             rotation: { yaw: 0, pitch: 0, roll: 0 },
             scale: 1,
-            factor: 0.4, // 0 = no smoothing, 1 = max smoothing
+            factor: 0.35, // 0 = no smoothing, 1 = max smoothing
         };
+
+        // Fade in/out opacity
+        this._fadeOpacity = 0;
 
         this._init();
     }
@@ -111,13 +114,25 @@ class ARRenderer {
         if (!this.glassesGroup) return;
 
         if (!faceData) {
-            // No face detected — hide glasses
-            this.glassesGroup.visible = false;
+            // No face detected — fade out glasses smoothly
+            if (this.glassesGroup.visible) {
+                this._fadeOpacity -= 0.08;
+                if (this._fadeOpacity <= 0) {
+                    this._fadeOpacity = 0;
+                    this.glassesGroup.visible = false;
+                }
+                this._setGroupOpacity(this.glassesGroup, this._fadeOpacity);
+            }
             this._render();
             return;
         }
 
+        // Face detected — fade in
         this.glassesGroup.visible = true;
+        if (this._fadeOpacity < 1) {
+            this._fadeOpacity = Math.min(this._fadeOpacity + 0.15, 1);
+            this._setGroupOpacity(this.glassesGroup, this._fadeOpacity);
+        }
 
         const aspect = this.canvas.width / this.canvas.height;
 
@@ -176,6 +191,17 @@ class ARRenderer {
 
     _render() {
         this.renderer.render(this.scene, this.camera);
+    }
+
+    _setGroupOpacity(group, opacity) {
+        group.traverse((child) => {
+            if (child.isMesh && child.material) {
+                child.material.transparent = true;
+                child.material.opacity = child.material.userData?.baseOpacity != null
+                    ? child.material.userData.baseOpacity * opacity
+                    : opacity;
+            }
+        });
     }
 
     takeScreenshot() {
