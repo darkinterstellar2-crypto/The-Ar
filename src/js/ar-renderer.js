@@ -119,29 +119,31 @@ class ARRenderer {
 
         this.glassesGroup.visible = true;
 
-        const canvasW = this.canvas.width;
-        const canvasH = this.canvas.height;
-        const aspect = canvasW / canvasH;
+        const aspect = this.canvas.width / this.canvas.height;
 
         // === Position ===
-        // Convert normalized coords (0-1) to Three.js coords
-        // FaceMesh: x goes 0(left) to 1(right), y goes 0(top) to 1(bottom)
-        // Three.js ortho: x goes -0.5*aspect to 0.5*aspect, y goes -0.5 to 0.5
-        // Mirror X because webcam is mirrored
+        // FaceMesh: x=[0,1] left-to-right, y=[0,1] top-to-bottom, z=depth
+        // Three.js ortho: x=[-0.5*aspect, 0.5*aspect], y=[-0.5, 0.5]
+        // Webcam is CSS mirrored (scaleX(-1)), so we also mirror x in 3D
+        
+        // Use nose bridge for vertical position (more stable than eye center)
+        const bridgeY = faceData.noseBridge.y;
+        
         const targetX = (0.5 - faceData.position.x) * aspect;
-        const targetY = -(faceData.position.y - 0.5);
-        const targetZ = -faceData.position.z * 0.5;
+        const targetY = -(bridgeY - 0.5);
+        const targetZ = 0; // keep on screen plane
 
         // === Scale ===
-        // eyeWidth is normalized distance — scale glasses to match
-        const targetScale = faceData.eyeWidth * 5.5;
+        // eyeWidth = normalized distance between outer eye corners
+        // Map to Three.js world units — tuned for accurate face fit
+        const targetScale = faceData.eyeWidth * 6.0;
 
         // === Rotation ===
         const targetYaw = -faceData.rotation.yaw;
-        const targetPitch = faceData.rotation.pitch;
+        const targetPitch = faceData.rotation.pitch * 0.6; // dampen pitch — too sensitive
         const targetRoll = -faceData.rotation.roll;
 
-        // === Apply smoothing ===
+        // === Apply smoothing (exponential moving average) ===
         const f = 1 - this.smoothing.factor;
         
         this.smoothing.position.x += (targetX - this.smoothing.position.x) * f;
@@ -152,7 +154,7 @@ class ARRenderer {
         this.smoothing.rotation.pitch += (targetPitch - this.smoothing.rotation.pitch) * f;
         this.smoothing.rotation.roll += (targetRoll - this.smoothing.rotation.roll) * f;
 
-        // Apply to group
+        // Apply transforms
         this.glassesGroup.position.set(
             this.smoothing.position.x,
             this.smoothing.position.y,
@@ -161,6 +163,8 @@ class ARRenderer {
 
         this.glassesGroup.scale.setScalar(this.smoothing.scale);
 
+        // Apply rotation using Euler (pitch, yaw, roll) — YXZ order for natural head movement
+        this.glassesGroup.rotation.order = 'YXZ';
         this.glassesGroup.rotation.set(
             this.smoothing.rotation.pitch,
             this.smoothing.rotation.yaw,

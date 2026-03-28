@@ -164,23 +164,38 @@ class FaceTracker {
 
     _computeRotation(landmarks, L) {
         const noseBridge = landmarks[L.noseBridgeTop];
+        const noseTip = landmarks[L.noseTip];
         const chin = landmarks[L.chin];
         const forehead = landmarks[L.forehead];
-        const leftEar = landmarks[L.leftEar];
-        const rightEar = landmarks[L.rightEar];
-        const noseTip = landmarks[L.noseTip];
-
-        // Yaw (left-right turn): asymmetry of ear distances to nose
-        const leftDist = Math.abs(leftEar.x - noseBridge.x);
-        const rightDist = Math.abs(rightEar.x - noseBridge.x);
-        const yaw = Math.atan2(rightDist - leftDist, (rightDist + leftDist) / 2) * 1.5;
-
-        // Pitch (up-down tilt): nose tip vs nose bridge vertical
-        const pitch = Math.atan2(noseTip.y - noseBridge.y, Math.abs(noseTip.z - noseBridge.z)) - 0.5;
-
-        // Roll (head tilt): angle of eye line
         const leftEyeOuter = landmarks[L.leftEyeOuter];
         const rightEyeOuter = landmarks[L.rightEyeOuter];
+        const leftEar = landmarks[L.leftEar];
+        const rightEar = landmarks[L.rightEar];
+
+        // === YAW (left-right head turn) ===
+        // Use Z-depth difference between left and right face sides
+        // When turning right, left side comes forward (smaller z), right side goes back
+        const yawFromZ = Math.atan2(
+            (rightEar.z - leftEar.z),
+            (rightEar.x - leftEar.x)
+        ) * 2.0;
+        
+        // Also use nose-to-face-center offset for extra accuracy
+        const faceCenterX = (leftEar.x + rightEar.x) / 2;
+        const yawFromNose = (noseTip.x - faceCenterX) * 4.0;
+        
+        const yaw = yawFromZ * 0.6 + yawFromNose * 0.4;
+
+        // === PITCH (up-down tilt) ===
+        // Ratio of forehead-to-nose vs nose-to-chin distance changes with pitch
+        const foreheadToNose = noseBridge.y - forehead.y;
+        const noseToChin = chin.y - noseBridge.y;
+        const verticalRatio = foreheadToNose / (noseToChin + 0.001);
+        // Neutral ratio ~0.7, looking down > 0.7, looking up < 0.7
+        const pitch = (verticalRatio - 0.7) * 1.2;
+
+        // === ROLL (head tilt) ===
+        // Angle of the line connecting outer eye corners
         const roll = Math.atan2(
             rightEyeOuter.y - leftEyeOuter.y,
             rightEyeOuter.x - leftEyeOuter.x

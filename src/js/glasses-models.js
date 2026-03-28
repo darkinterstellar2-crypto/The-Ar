@@ -246,31 +246,55 @@ const GlassesModels = {
     },
 
     _createBridge(spec, S, material) {
-        const bw = spec.bridgeWidth * S + spec.lensWidth * S * 0.1;
-        const bh = 0.003;
-        const geometry = new THREE.BoxGeometry(bw, bh, 0.003);
+        const bw = spec.bridgeWidth * S + spec.lensWidth * S * 0.15;
+        const bh = spec.metallic ? 0.002 : 0.004;
+        const bd = spec.metallic ? 0.002 : 0.004;
+        const geometry = new THREE.BoxGeometry(bw, bh, bd);
         const mesh = new THREE.Mesh(geometry, material);
-        mesh.position.y = spec.lensShape === 'circle' ? 0 : spec.lensHeight * S * 0.15;
+        // Bridge sits at top of lens area (nose bridge position)
+        mesh.position.y = spec.lensHeight * S * 0.2;
+        mesh.position.z = 0.001;
+
+        // Double bridge for aviator
+        if (spec.bridgeStyle === 'double') {
+            const group = new THREE.Group();
+            const top = mesh;
+            const bottom = new THREE.Mesh(geometry.clone(), material);
+            bottom.position.y = spec.lensHeight * S * 0.05;
+            bottom.position.z = 0.001;
+            group.add(top, bottom);
+            return group;
+        }
+
         return mesh;
     },
 
     _createTemples(spec, S, material) {
-        const templeLength = 0.08;
-        const templeThickness = spec.templeStyle === 'thick' ? 0.004 : 
-                                spec.templeStyle === 'medium' ? 0.003 : 0.002;
-        const templeHeight = spec.templeStyle === 'thick' ? 0.005 : 0.003;
+        const templeLength = 0.07;
+        const templeThickness = spec.templeStyle === 'thick' ? 0.005 : 
+                                spec.templeStyle === 'medium' ? 0.004 : 0.002;
+        const templeHeight = spec.templeStyle === 'thick' ? 0.006 : 0.003;
 
         const lensOuter = spec.lensWidth * S / 2 + spec.bridgeWidth * S / 2 + spec.lensWidth * S / 2;
 
+        // Temple arm (slightly tapers back)
         const geo = new THREE.BoxGeometry(templeLength, templeHeight, templeThickness);
 
         const left = new THREE.Mesh(geo, material);
-        left.position.set(-lensOuter - templeLength / 2, spec.lensHeight * S * 0.15, -0.001);
-        left.rotation.y = 0.15; // slight angle back
+        left.position.set(
+            -lensOuter - templeLength / 2 + 0.002,
+            spec.lensHeight * S * 0.15,
+            -templeLength / 3 // extend backward
+        );
+        left.rotation.y = 0.35; // angle back toward ears
 
         const right = new THREE.Mesh(geo, material);
-        right.position.set(lensOuter + templeLength / 2, spec.lensHeight * S * 0.15, -0.001);
-        right.rotation.y = -0.15;
+        right.position.set(
+            lensOuter + templeLength / 2 - 0.002,
+            spec.lensHeight * S * 0.15,
+            -templeLength / 3
+        );
+        right.rotation.y = -0.35;
 
         return { left, right };
     },
