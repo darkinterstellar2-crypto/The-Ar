@@ -2,10 +2,11 @@
  * ar-renderer.js
  * Three.js overlay renderer — places 3D glasses on detected face
  * 
- * Uses:
- * - Calibration data (iris anchor) for real-world scaling
- * - 1€ Filter for jitter smoothing
- * - Occlusion mask for realistic temple clipping
+ * Coordinate system:
+ * - MediaPipe: x=[0,1] left-to-right, y=[0,1] top-to-bottom
+ * - Three.js NDC: x=[-1,1] left-to-right, y=[-1,1] bottom-to-top
+ * - Conversion: x_ndc = (mp.x * 2) - 1, y_ndc = -(mp.y * 2) + 1
+ * - CSS scaleX(-1) applied to BOTH video and canvas for mirror
  */
 
 class ARRenderer {
@@ -15,12 +16,8 @@ class ARRenderer {
         this.camera = null;
         this.renderer = null;
         this.glassesGroup = null;
-        this.occluderMesh = null;
         this.currentModel = null;
         this.currentColor = null;
-
-        // Calibration data (set after selfie phase)
-        this.calibration = null;
 
         // 1€ Filters for smooth tracking
         this.posFilter = new OneEuroFilterGroup(
@@ -34,14 +31,20 @@ class ARRenderer {
         // Fade
         this._fadeOpacity = 0;
 
+        // Video crop info (for object-fit: cover alignment)
+        this._cropOffsetX = 0;
+        this._cropOffsetY = 0;
+        this._cropScaleX = 1;
+        this._cropScaleY = 1;
+
         this._init();
     }
 
     _init() {
         this.scene = new THREE.Scene();
 
-        // Orthographic camera for screen overlay
-        this.camera = new THREE.OrthographicCamera(-0.5, 0.5, 0.5, -0.5, 0.01, 10);
+        // Camera in NDC space: x=[-1,1], y=[-1,1]
+        this.camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.01, 10);
         this.camera.position.z = 1;
 
         this.renderer = new THREE.WebGLRenderer({
@@ -69,29 +72,45 @@ class ARRenderer {
     }
 
     _resize() {
-        const w = this.canvas.parentElement.clientWidth;
-        const h = this.canvas.parentElement.clientHeight;
+        const container = this.canvas.parentElement;
+        const w = container.clientWidth;
+        const h = container.clientHeight;
         this.renderer.setSize(w, h);
-        this.canvas.width = w;
-        this.canvas.height = h;
 
+        // Camera stays at NDC [-1,1] range — no aspect adjustment needed
+        // because we handle aspect in the position/scale mapping
         const aspect = w / h;
-        this.camera.left = -0.5 * aspect;
-        this.camera.right = 0.5 * aspect;
-        this.camera.top = 0.5;
-        this.camera.bottom = -0.5;
+        this.camera.left = -1;
+        this.camera.right = 1;
+        this.camera.top = 1;
+        this.camera.bottom = -1;
         this.camera.updateProjectionMatrix();
+
+        // Compute object-fit: cover crop offset
+        this._updateCropInfo();
     }
 
-    /**
-     * Set calibration data from selfie analysis
-     */
-    setCalibration(calibData) {
-        this.calibration = calibData;
-        // Reset filters when recalibrating
-        this.posFilter.reset();
-        this.rotFilter.reset();
-        this.scaleFilter.reset();
+    _updateCropInfo() {
+        const video = document.getElementById('webcam');
+        if (!video || !video.videoWidth) return;
+
+        const container = this.canvas.parentElement;
+        const containerAspect = container.clientWidth / container.clientHeight;
+        const videoAspect = video.videoWidth / video.videoHeight;
+
+        if (videoAspect > containerAspect) {
+            // Video wider than container — sides cropped
+            this._cropScaleX = containerAspect / videoAspect;
+            this._cropOffsetX = (1 - this._cropScaleX) / 2;
+            this._cropScaleY = 1;
+            this._cropOffsetY = 0;
+        } else {
+            // Video taller than container — top/bottom cropped
+            this._cropScaleX = 1;
+            this._cropOffsetX = 0;
+            this._cropScaleY = videoAspect / containerAspect;
+            this._cropOffsetY = (1 - this._cropScaleY) / 2;
+        }
     }
 
     setGlasses(modelId, color) {
@@ -125,7 +144,7 @@ class ARRenderer {
         if (!this.glassesGroup) return;
 
         const tints = {
-            'clear':       { color: 0x111111, opacity: 0.08, metalness: 0.0 },
+            'clear':       { color: 0x222222, opacity: 0.12, metalness: 0.0 },
             'sun-grey':    { color: 0x1a1a1a, opacity: 0.55, metalness: 0.05 },
             'sun-brown':   { color: 0x4a2810, opacity: 0.50, metalness: 0.05 },
             'sun-green':   { color: 0x1a3a1a, opacity: 0.45, metalness: 0.05 },
@@ -149,8 +168,7 @@ class ARRenderer {
     }
 
     /**
-     * Update glasses position/rotation/scale from face data
-     * Core render loop — called every frame
+     * Update glasses from face data — core render loop
      */
     update(faceData) {
         if (!this.glassesGroup) return;
@@ -174,23 +192,32 @@ class ARRenderer {
             this._setGroupOpacity(this.glassesGroup, this._fadeOpacity);
         }
 
-        const aspect = this.canvas.width / this.canvas.height;
+        // Update crop info (video dimensions may not be available on first frame)
+        this._updateCropInfo();
+
         const now = performance.now();
 
         // === POSITION ===
-        // FaceMesh: x=[0,1], y=[0,1]. Ortho: x=[-0.5*aspect, 0.5*aspect], y=[-0.5, 0.5]
-        // Mirror X to match CSS scaleX(-1) on video
-        // Use nose bridge position directly instead of eye center
-        const noseY = faceData.noseBridge ? faceData.noseBridge.y : faceData.position.y;
-        const rawX = (0.5 - faceData.position.x) * aspect;
-        const rawY = 0.5 - noseY; // nose bridge IS the glasses position
+        // Use nose bridge as anchor (landmark #6) — this IS where glasses sit
+        const lmX = faceData.noseBridge ? faceData.noseBridge.x : faceData.position.x;
+        const lmY = faceData.noseBridge ? faceData.noseBridge.y : faceData.position.y;
+
+        // Adjust for object-fit: cover cropping
+        const visX = (lmX - this._cropOffsetX) / this._cropScaleX;
+        const visY = (lmY - this._cropOffsetY) / this._cropScaleY;
+
+        // Convert to NDC: x_ndc = (x * 2) - 1, y_ndc = -(y * 2) + 1
+        const rawX = (visX * 2) - 1;
+        const rawY = -(visY * 2) + 1;
 
         const pos = this.posFilter.filter({ x: rawX, y: rawY }, now);
 
         // === SCALE ===
-        // Glasses width should span ~1.1x the eye-to-eye distance
-        const modelWidth = 0.19;
-        const rawScale = (faceData.eyeWidth * aspect * 1.05) / modelWidth;
+        // Eye width in NDC units (multiply by 2 to convert from [0,1] to [-1,1] range)
+        const eyeWidthNDC = (faceData.eyeWidth / this._cropScaleX) * 2;
+        // Glasses should span ~1.15x eye-to-eye distance
+        const modelWidth = 0.19; // base model width at scale=1
+        const rawScale = (eyeWidthNDC * 1.15) / modelWidth;
 
         const scale = this.scaleFilter.filter(rawScale, now);
 
@@ -214,9 +241,6 @@ class ARRenderer {
     _render() {
         this.renderer.render(this.scene, this.camera);
     }
-
-    // Constant used for iris-based scaling
-    get IRIS_DIAMETER_MM() { return 11.7; }
 
     _setGroupOpacity(group, opacity) {
         group.traverse((child) => {

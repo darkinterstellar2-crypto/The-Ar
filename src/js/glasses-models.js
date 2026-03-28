@@ -162,10 +162,20 @@ const GlassesModels = {
 
         group.add(leftFrame, rightFrame, leftLensMesh, rightLensMesh, bridge, leftTemple, rightTemple);
 
-        // Store spec reference for adjustments
-        group.userData = { spec, color: frameColor };
+        // FIX #1: Re-center origin using bounding box
+        // Without this, the pivot point could be offset, pushing glasses off-position
+        const box = new THREE.Box3().setFromObject(group);
+        const center = box.getCenter(new THREE.Vector3());
+        group.children.forEach(child => {
+            child.position.sub(center);
+        });
 
-        return group;
+        // Wrap in outer group so the centered model has clean (0,0,0) origin
+        const wrapper = new THREE.Group();
+        wrapper.add(group);
+        wrapper.userData = { spec, color: frameColor };
+
+        return wrapper;
     },
 
     _createLens(spec, S) {

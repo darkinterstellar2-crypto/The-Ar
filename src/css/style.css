@@ -83,20 +83,20 @@ html, body {
 /* === AR Container === */
 #ar-container { 
     position: relative; width: 100%; height: 100%; 
-    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
 }
-#webcam {
+/* FIX #3: Video and canvas MUST have identical CSS */
+#webcam, #ar-canvas {
     position: absolute;
+    top: 0; left: 0;
     width: 100%; height: 100%;
-    object-fit: cover;
-    transform: scaleX(-1); /* Mirror */
+    object-fit: cover;        /* Both crop the same way */
+    transform: scaleX(-1);    /* Both mirror the same way */
 }
-#ar-canvas, #overlay-canvas {
-    position: absolute;
-    width: 100%; height: 100%;
+#ar-canvas {
     pointer-events: none;
+    z-index: 1;
 }
-#overlay-canvas { z-index: 2; }
 
 /* === Top Bar === */
 #top-bar {
