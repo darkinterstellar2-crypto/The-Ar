@@ -159,6 +159,32 @@ const GlassesModels = {
             group.add(browLeft, browRight);
         }
 
+        // === Nose pads (for metal frames) ===
+        if (spec.metallic) {
+            const padGeo = new THREE.SphereGeometry(0.0015, 8, 8);
+            const padMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.3, roughness: 0.5 });
+            
+            const leftPad = new THREE.Mesh(padGeo, padMat);
+            leftPad.position.set(-spec.bridgeWidth * S * 0.5, -spec.lensHeight * S * 0.1, 0.003);
+            
+            const rightPad = new THREE.Mesh(padGeo, padMat);
+            rightPad.position.set(spec.bridgeWidth * S * 0.5, -spec.lensHeight * S * 0.1, 0.003);
+            
+            // Pad arms
+            const padArmGeo = new THREE.CylinderGeometry(0.0004, 0.0004, 0.008, 6);
+            const padArmMat = new THREE.MeshStandardMaterial({ color: frameColor, metalness: 0.8, roughness: 0.2 });
+            
+            const leftArm = new THREE.Mesh(padArmGeo, padArmMat);
+            leftArm.position.set(-spec.bridgeWidth * S * 0.4, -spec.lensHeight * S * 0.02, 0.002);
+            leftArm.rotation.z = 0.5;
+            
+            const rightArm = new THREE.Mesh(padArmGeo, padArmMat);
+            rightArm.position.set(spec.bridgeWidth * S * 0.4, -spec.lensHeight * S * 0.02, 0.002);
+            rightArm.rotation.z = -0.5;
+            
+            group.add(leftPad, rightPad, leftArm, rightArm);
+        }
+
         group.add(leftFrame, rightFrame, leftLensMesh, rightLensMesh, bridge, leftTemple, rightTemple);
 
         // Store spec reference for adjustments
@@ -174,7 +200,7 @@ const GlassesModels = {
 
         switch (spec.lensShape) {
             case 'circle':
-                geometry = new THREE.CircleGeometry(w / 2, 32);
+                geometry = new THREE.CircleGeometry(w / 2, 48); // more segments = smoother
                 break;
             case 'teardrop':
                 geometry = this._teardropGeometry(w, h);
@@ -183,16 +209,16 @@ const GlassesModels = {
                 geometry = this._cateyeGeometry(w, h);
                 break;
             case 'rectangle':
-                geometry = new THREE.PlaneGeometry(w, h);
+                geometry = this._roundedRectGeometry(w, h, w * 0.08); // rounded corners
                 break;
             case 'trapezoid':
                 geometry = this._trapezoidGeometry(w, h);
                 break;
             case 'browline':
-                geometry = new THREE.PlaneGeometry(w, h, 1, 1);
+                geometry = this._roundedRectGeometry(w, h, w * 0.06);
                 break;
             default:
-                geometry = new THREE.PlaneGeometry(w, h);
+                geometry = this._roundedRectGeometry(w, h, w * 0.05);
         }
 
         return { geometry, position: new THREE.Vector3() };
@@ -213,29 +239,20 @@ const GlassesModels = {
             hole.absarc(0, 0, r, 0, Math.PI * 2, true);
             outerShape.holes.push(hole);
         } else {
-            // Rectangular-ish frame
+            // Rounded rectangle frame with proper inner cutout
             const hw = w / 2 + thickness;
             const hh = h / 2 + thickness;
             const ihw = w / 2;
             const ihh = h / 2;
-            const cr = thickness * 2;
+            const outerR = Math.min(thickness * 3, hw * 0.15);
+            const innerR = Math.min(thickness * 2, ihw * 0.1);
 
-            outerShape.moveTo(-hw + cr, -hh);
-            outerShape.lineTo(hw - cr, -hh);
-            outerShape.quadraticCurveTo(hw, -hh, hw, -hh + cr);
-            outerShape.lineTo(hw, hh - cr);
-            outerShape.quadraticCurveTo(hw, hh, hw - cr, hh);
-            outerShape.lineTo(-hw + cr, hh);
-            outerShape.quadraticCurveTo(-hw, hh, -hw, hh - cr);
-            outerShape.lineTo(-hw, -hh + cr);
-            outerShape.quadraticCurveTo(-hw, -hh, -hw + cr, -hh);
+            // Outer rounded rect
+            this._addRoundedRect(outerShape, hw, hh, outerR);
 
+            // Inner cutout (hole)
             const hole = new THREE.Path();
-            hole.moveTo(-ihw, -ihh);
-            hole.lineTo(ihw, -ihh);
-            hole.lineTo(ihw, ihh);
-            hole.lineTo(-ihw, ihh);
-            hole.lineTo(-ihw, -ihh);
+            this._addRoundedRect(hole, ihw, ihh, innerR);
             outerShape.holes.push(hole);
         }
 
@@ -308,6 +325,35 @@ const GlassesModels = {
         const xOffset = (spec.lensWidth * S / 2 + spec.bridgeWidth * S / 2) * side;
         mesh.position.set(xOffset, spec.lensHeight * S * 0.3, -0.001);
         return mesh;
+    },
+
+    _addRoundedRect(shape, hw, hh, r) {
+        r = Math.min(r, hw, hh);
+        shape.moveTo(-hw + r, -hh);
+        shape.lineTo(hw - r, -hh);
+        shape.quadraticCurveTo(hw, -hh, hw, -hh + r);
+        shape.lineTo(hw, hh - r);
+        shape.quadraticCurveTo(hw, hh, hw - r, hh);
+        shape.lineTo(-hw + r, hh);
+        shape.quadraticCurveTo(-hw, hh, -hw, hh - r);
+        shape.lineTo(-hw, -hh + r);
+        shape.quadraticCurveTo(-hw, -hh, -hw + r, -hh);
+    },
+
+    _roundedRectGeometry(w, h, r) {
+        const shape = new THREE.Shape();
+        const hw = w / 2, hh = h / 2;
+        r = Math.min(r, hw, hh);
+        shape.moveTo(-hw + r, -hh);
+        shape.lineTo(hw - r, -hh);
+        shape.quadraticCurveTo(hw, -hh, hw, -hh + r);
+        shape.lineTo(hw, hh - r);
+        shape.quadraticCurveTo(hw, hh, hw - r, hh);
+        shape.lineTo(-hw + r, hh);
+        shape.quadraticCurveTo(-hw, hh, -hw, hh - r);
+        shape.lineTo(-hw, -hh + r);
+        shape.quadraticCurveTo(-hw, -hh, -hw + r, -hh);
+        return new THREE.ShapeGeometry(shape);
     },
 
     _teardropGeometry(w, h) {
