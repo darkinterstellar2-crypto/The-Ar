@@ -1,0 +1,454 @@
+/**
+ * ar-tryon-widget.css
+ * Scoped styles for the ARTryOnWidget — uses .artw- prefix to avoid leaking into host page
+ */
+
+.artw-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #0a0a0a;
+  border-radius: 12px;
+  overflow: hidden;
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  box-sizing: border-box;
+  user-select: none;
+}
+
+.artw-container *, .artw-container *::before, .artw-container *::after {
+  box-sizing: border-box;
+}
+
+/* Video + Canvas stack */
+.artw-video {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.artw-canvas {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+}
+
+/* PD overlay canvas */
+.artw-pd-canvas {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+}
+
+/* ── Loading Screen ── */
+.artw-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10,10,10,0.92);
+  color: #F5F2ED;
+  z-index: 20;
+  gap: 16px;
+  transition: opacity 0.4s;
+}
+
+.artw-loading.artw-fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.artw-spinner {
+  width: 44px;
+  height: 44px;
+  border: 3px solid rgba(212,163,115,0.25);
+  border-top-color: #D4A373;
+  border-radius: 50%;
+  animation: artw-spin 0.8s linear infinite;
+}
+
+@keyframes artw-spin {
+  to { transform: rotate(360deg); }
+}
+
+.artw-loading-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(245,242,237,0.75);
+  letter-spacing: 0.02em;
+}
+
+/* ── Error Screen ── */
+.artw-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10,10,10,0.92);
+  color: #F5F2ED;
+  z-index: 20;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+}
+
+.artw-error-icon {
+  font-size: 36px;
+}
+
+.artw-error-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #F5F2ED;
+}
+
+.artw-error-msg {
+  font-size: 13px;
+  color: rgba(245,242,237,0.6);
+  line-height: 1.5;
+}
+
+.artw-retry-btn {
+  margin-top: 8px;
+  padding: 8px 20px;
+  background: #D4A373;
+  color: #0A2540;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.artw-retry-btn:hover { background: #c4936a; }
+
+/* ── No Face Indicator ── */
+.artw-no-face {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0,0,0,0.6);
+  color: rgba(245,242,237,0.8);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 999px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+  white-space: nowrap;
+  backdrop-filter: blur(4px);
+}
+.artw-no-face.visible { opacity: 1; }
+
+/* ── Top Bar ── */
+.artw-top-bar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 100%);
+  z-index: 10;
+}
+
+.artw-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.12);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, transform 0.15s;
+  flex-shrink: 0;
+}
+.artw-icon-btn:hover { background: rgba(212,163,115,0.35); transform: scale(1.08); }
+.artw-icon-btn svg { width: 16px; height: 16px; }
+
+.artw-fps {
+  font-size: 10px;
+  color: rgba(255,255,255,0.45);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+
+/* ── Frame Selector Strip ── */
+.artw-frame-strip {
+  position: absolute;
+  bottom: 60px;
+  left: 0; right: 0;
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  background: linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 100%);
+  z-index: 10;
+}
+.artw-frame-strip::-webkit-scrollbar { display: none; }
+
+.artw-frame-card {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  color: rgba(255,255,255,0.7);
+  min-width: 60px;
+}
+.artw-frame-card:hover {
+  border-color: rgba(212,163,115,0.5);
+  background: rgba(212,163,115,0.12);
+  color: #fff;
+}
+.artw-frame-card.active {
+  border-color: #D4A373;
+  background: rgba(212,163,115,0.2);
+  color: #D4A373;
+}
+.artw-frame-card svg {
+  width: 32px;
+  height: 22px;
+}
+.artw-frame-card span {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+/* ── Bottom Action Bar ── */
+.artw-action-bar {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(10,10,10,0.75);
+  backdrop-filter: blur(8px);
+  z-index: 10;
+  gap: 8px;
+}
+
+.artw-action-btn {
+  flex: 1;
+  height: 36px;
+  border: none;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.artw-action-btn:hover { transform: scale(1.03); }
+.artw-action-btn svg { width: 13px; height: 13px; }
+
+.artw-btn-screenshot {
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+.artw-btn-screenshot:hover { background: rgba(255,255,255,0.2); }
+
+.artw-btn-pd {
+  background: rgba(212,163,115,0.18);
+  color: #D4A373;
+  border: 1px solid rgba(212,163,115,0.35);
+}
+.artw-btn-pd:hover { background: rgba(212,163,115,0.3); }
+.artw-btn-pd.active {
+  background: #D4A373;
+  color: #0A2540;
+  border-color: #D4A373;
+}
+
+.artw-btn-cart {
+  background: #D4A373;
+  color: #0A2540;
+  flex: 1.5;
+}
+.artw-btn-cart:hover { background: #c4936a; }
+
+/* ── Color / Lens Pickers ── */
+.artw-picker {
+  position: absolute;
+  bottom: 100px;
+  left: 12px;
+  background: rgba(10,10,10,0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(212,163,115,0.2);
+  border-radius: 14px;
+  padding: 12px;
+  z-index: 15;
+  display: none;
+}
+.artw-picker.visible { display: block; }
+
+.artw-picker-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(245,242,237,0.5);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.artw-color-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+}
+
+.artw-color-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.15s;
+}
+.artw-color-swatch:hover { transform: scale(1.15); }
+.artw-color-swatch.active { border-color: #D4A373; transform: scale(1.1); }
+
+.artw-lens-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.artw-lens-opt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 8px;
+  border: 1.5px solid transparent;
+  transition: border-color 0.2s, background 0.2s;
+}
+.artw-lens-opt:hover { background: rgba(255,255,255,0.06); }
+.artw-lens-opt.active { border-color: #D4A373; }
+.artw-lens-preview {
+  width: 32px;
+  height: 20px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.15);
+}
+.artw-lens-opt span {
+  font-size: 9px;
+  color: rgba(245,242,237,0.65);
+  font-weight: 500;
+}
+.artw-lens-opt.active span { color: #D4A373; }
+
+/* ── PD Result Badge ── */
+.artw-pd-badge {
+  position: absolute;
+  top: 56px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(212,163,115,0.4);
+  border-radius: 999px;
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #D4A373;
+  pointer-events: none;
+  display: none;
+  white-space: nowrap;
+  z-index: 11;
+}
+.artw-pd-badge.visible { display: block; }
+
+/* ── Screenshot Preview Overlay ── */
+.artw-screenshot-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.88);
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  display: none;
+}
+.artw-screenshot-overlay.visible { display: flex; }
+
+.artw-screenshot-img {
+  max-width: 90%;
+  max-height: 75%;
+  object-fit: contain;
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+.artw-screenshot-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.artw-ss-btn {
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.artw-ss-download {
+  background: #D4A373;
+  color: #0A2540;
+}
+.artw-ss-download:hover { background: #c4936a; }
+.artw-ss-close {
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+.artw-ss-close:hover { background: rgba(255,255,255,0.2); }
+
+/* ── Theme color overrides via CSS vars ── */
+.artw-container {
+  --artw-primary: #D4A373;
+  --artw-secondary: #0A2540;
+  --artw-bg: #F5F2ED;
+}

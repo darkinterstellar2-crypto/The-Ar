@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AR Try-On Widget — E-Commerce Integration Example</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #F5F2ED;
+      color: #0A2540;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #0A2540;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    header h1 {
+      font-size: 22px;
+      font-weight: 600;
+      color: #F5F2ED;
+      letter-spacing: -0.02em;
+    }
+    header span {
+      color: #D4A373;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 0;
+      min-height: calc(100vh - 60px);
+    }
+
+    /* ── AR Widget Area ── */
+    .ar-side {
+      position: relative;
+      background: #0a0a0a;
+      min-height: 520px;
+    }
+
+    #ar-container {
+      width: 100%;
+      height: 100%;
+      min-height: 520px;
+    }
+
+    /* ── Product Panel ── */
+    .product-panel {
+      background: #fff;
+      border-left: 1px solid rgba(212,163,115,0.2);
+      display: flex;
+      flex-direction: column;
+      padding: 28px 24px;
+      gap: 20px;
+      overflow-y: auto;
+    }
+
+    .panel-title {
+      font-size: 22px;
+      font-weight: 600;
+      color: #0A2540;
+      line-height: 1.2;
+    }
+    .panel-subtitle {
+      font-size: 13px;
+      color: #8B8070;
+      margin-top: 4px;
+    }
+
+    .price {
+      font-size: 26px;
+      font-weight: 700;
+      color: #0A2540;
+    }
+
+    /* Frame selector */
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #8B8070;
+      margin-bottom: 10px;
+    }
+
+    .frame-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .frame-btn {
+      padding: 10px 6px;
+      border: 1.5px solid rgba(10,37,64,0.15);
+      border-radius: 10px;
+      background: #F5F2ED;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+      font-weight: 600;
+      color: #0A2540;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .frame-btn:hover { border-color: #D4A373; background: #EDD9B8; }
+    .frame-btn.active { border-color: #D4A373; background: #D4A373; color: #0A2540; }
+    .frame-btn svg { width: 36px; height: 22px; }
+
+    /* Color swatches */
+    .color-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .color-dot {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2.5px solid transparent;
+      cursor: pointer;
+      transition: border-color 0.2s, transform 0.15s;
+    }
+    .color-dot:hover { transform: scale(1.12); }
+    .color-dot.active { border-color: #0A2540; }
+
+    /* PD result */
+    .pd-result {
+      background: #F5F2ED;
+      border: 1px solid rgba(212,163,115,0.4);
+      border-radius: 10px;
+      padding: 12px 16px;
+      display: none;
+    }
+    .pd-result.visible { display: block; }
+    .pd-result-title { font-size: 11px; font-weight: 600; color: #8B8070; text-transform: uppercase; letter-spacing: 0.05em; }
+    .pd-result-value { font-size: 22px; font-weight: 700; color: #0A2540; margin-top: 4px; }
+    .pd-result-note { font-size: 11px; color: #8B8070; margin-top: 4px; }
+
+    /* Screenshot preview */
+    .ss-preview {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .ss-preview.visible { display: flex; }
+    .ss-preview img { width: 100%; border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+    .ss-actions { display: flex; gap: 8px; }
+    .ss-btn {
+      flex: 1;
+      padding: 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      text-align: center;
+      display: inline-block;
+    }
+    .ss-btn-dl { background: #D4A373; color: #0A2540; }
+    .ss-btn-cl { background: #F5F2ED; color: #0A2540; border: 1px solid rgba(10,37,64,0.2); }
+
+    /* Cart notification */
+    .cart-toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #0A2540;
+      color: #F5F2ED;
+      padding: 12px 24px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+      z-index: 999;
+      white-space: nowrap;
+    }
+    .cart-toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* Event log */
+    .event-log {
+      background: #0A2540;
+      border-radius: 10px;
+      padding: 14px;
+    }
+    .event-log-title { font-size: 11px; font-weight: 600; color: rgba(245,242,237,0.5); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+    .event-entries { display: flex; flex-direction: column; gap: 4px; max-height: 100px; overflow-y: auto; }
+    .event-entry { font-size: 11px; color: #D4A373; font-family: monospace; }
+
+    @media (max-width: 768px) {
+      .layout { grid-template-columns: 1fr; }
+      .ar-side { min-height: 60vw; }
+      .product-panel { padding: 20px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Opto<span>Nam</span> — AR Try-On <span style="font-size:13px;color:rgba(245,242,237,0.5);font-weight:400;margin-left:8px;">Integration Demo</span></h1>
+</header>
+
+<div class="layout">
+
+  <!-- ── AR Widget ── -->
+  <div class="ar-side">
+    <div id="ar-container"></div>
+  </div>
+
+  <!-- ── Product Panel ── -->
+  <div class="product-panel">
+
+    <div>
+      <div class="panel-title" id="frame-name">Aviator Slim</div>
+      <div class="panel-subtitle">Edelstahl · Silber · UV400</div>
+    </div>
+
+    <div class="price">€ 219,00</div>
+
+    <!-- Frame selector -->
+    <div>
+      <div class="section-label">Modell wählen</div>
+      <div class="frame-grid" id="frame-grid">
+        <!-- populated by JS -->
+      </div>
+    </div>
+
+    <!-- Color picker -->
+    <div>
+      <div class="section-label">Farbe</div>
+      <div class="color-row" id="color-row">
+        <!-- populated by JS -->
+      </div>
+    </div>
+
+    <!-- PD result -->
+    <div class="pd-result" id="pd-result">
+      <div class="pd-result-title">Gemessene PD</div>
+      <div class="pd-result-value" id="pd-value">-- mm</div>
+      <div class="pd-result-note">Links / Rechts: je <span id="pd-half">--</span> mm</div>
+    </div>
+
+    <!-- Screenshot preview -->
+    <div class="ss-preview" id="ss-preview">
+      <div class="section-label">Foto</div>
+      <img id="ss-img" alt="Screenshot" />
+      <div class="ss-actions">
+        <a class="ss-btn ss-btn-dl" id="ss-download" download="optonam-tryon.png">⬇ Download</a>
+        <button class="ss-btn ss-btn-cl" id="ss-clear">Entfernen</button>
+      </div>
+    </div>
+
+    <!-- Event log -->
+    <div class="event-log">
+      <div class="event-log-title">Widget Events</div>
+      <div class="event-entries" id="event-log"></div>
+    </div>
+
+  </div><!-- /product-panel -->
+</div>
+
+<!-- Cart toast -->
+<div class="cart-toast" id="cart-toast">✓ In den Warenkorb gelegt!</div>
+
+
+<!-- ══════════════════════════════════════════════
+     AR Widget Integration
+══════════════════════════════════════════════ -->
+<script src="../src/widget/ar-tryon-widget.js"></script>
+<script>
+  // ── Instantiate widget ─────────────────────────────────────────────────────
+  const widget = new ARTryOnWidget(document.getElementById('ar-container'), {
+    defaultFrame: 'aviator',
+    theme: {
+      primary:   '#D4A373',  // OptoNam gold
+      secondary: '#0A2540',  // OptoNam navy
+    },
+  });
+
+  // ── Event handlers ─────────────────────────────────────────────────────────
+
+  widget.onReady((data) => {
+    logEvent('ready', `frame=${data.frameId}`);
+    buildPanelFrames();
+  });
+
+  widget.onFrameChange((data) => {
+    logEvent('frameChange', `frame=${data.frameId}, color=${data.color}`);
+    document.getElementById('frame-name').textContent = data.frameId.charAt(0).toUpperCase() + data.frameId.slice(1);
+    document.querySelectorAll('.frame-btn').forEach(btn =>
+      btn.classList.toggle('active', btn.dataset.frame === data.frameId)
+    );
+  });
+
+  widget.onPDMeasured((pd) => {
+    logEvent('pdMeasured', `total=${pd.total}mm`);
+    const el = document.getElementById('pd-result');
+    document.getElementById('pd-value').textContent = pd.total + ' mm';
+    document.getElementById('pd-half').textContent = pd.left;
+    el.classList.add('visible');
+  });
+
+  widget.onScreenshot((data) => {
+    logEvent('screenshot', 'captured');
+    const ssPreview = document.getElementById('ss-preview');
+    document.getElementById('ss-img').src = data.dataUrl;
+    document.getElementById('ss-download').href = data.dataUrl;
+    ssPreview.classList.add('visible');
+  });
+
+  widget.onAddToCart((data) => {
+    logEvent('addToCart', `frame=${data.frameId}, color=${data.color}`);
+    showCartToast();
+  });
+
+  widget.onError((data) => {
+    logEvent('error', data.message);
+  });
+
+  // ── Panel: frame grid ──────────────────────────────────────────────────────
+  function buildPanelFrames() {
+    // Only available after deps loaded (GlassesModels)
+    if (typeof GlassesModels === 'undefined') {
+      setTimeout(buildPanelFrames, 200);
+      return;
+    }
+
+    const grid = document.getElementById('frame-grid');
+    grid.innerHTML = '';
+
+    GlassesModels.catalog.forEach(model => {
+      const btn = document.createElement('button');
+      btn.className = 'frame-btn' + (model.id === 'aviator' ? ' active' : '');
+      btn.dataset.frame = model.id;
+      btn.innerHTML = `
+        <svg viewBox="0 0 24 20" fill="none" stroke="currentColor" stroke-width="1.2">
+          <path d="${model.icon}"/>
+        </svg>
+        ${model.name}
+      `;
+      btn.addEventListener('click', () => widget.loadFrame(model.id));
+      grid.appendChild(btn);
+    });
+  }
+
+  // ── Panel: color swatches ──────────────────────────────────────────────────
+  const colors = ['#1a1a1a','#C0C0C0','#D4A373','#FFD700','#8B4513','#1E3A5F','#8B0000','#4169E1'];
+  const colorRow = document.getElementById('color-row');
+  colors.forEach((c, i) => {
+    const dot = document.createElement('div');
+    dot.className = 'color-dot' + (i === 0 ? ' active' : '');
+    dot.style.background = c;
+    dot.title = c;
+    dot.addEventListener('click', () => {
+      colorRow.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+      dot.classList.add('active');
+      widget.loadFrame(widget._currentFrame, c);
+    });
+    colorRow.appendChild(dot);
+  });
+
+  // ── Screenshot clear ───────────────────────────────────────────────────────
+  document.getElementById('ss-clear').addEventListener('click', () => {
+    document.getElementById('ss-preview').classList.remove('visible');
+  });
+
+  // ── Cart toast ─────────────────────────────────────────────────────────────
+  function showCartToast() {
+    const toast = document.getElementById('cart-toast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3000);
+  }
+
+  // ── Event log ──────────────────────────────────────────────────────────────
+  function logEvent(name, detail) {
+    const log = document.getElementById('event-log');
+    const entry = document.createElement('div');
+    entry.className = 'event-entry';
+    entry.textContent = `→ ${name}: ${detail}`;
+    log.insertBefore(entry, log.firstChild);
+    if (log.children.length > 20) log.removeChild(log.lastChild);
+  }
+
+  // ── Start the widget ───────────────────────────────────────────────────────
+  widget.init().catch(err => console.error('Widget init failed:', err));
+
+  // ── URL param: pre-select frame (?frame=round) ────────────────────────────
+  const urlFrame = new URLSearchParams(window.location.search).get('frame');
+  if (urlFrame) {
+    widget.onReady(() => widget.loadFrame(urlFrame));
+  }
+</script>
+
+</body>
+</html>
